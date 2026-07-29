@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Power Ranking Card Prototype — MLB Power Rankings Carousel</title>
+
+<style>
+  /* --- Fonts (Athletic Sans/Serif/Slab superfamily, see Assets/Fonts) ----
+     Replaces the old NYT-derived Franklin/Cheltenham/Imperial/"Athletic
+     Regular Slab" set. Only the weights actually used below are loaded;
+     the full superfamily (all 9 families, every weight) still lives in
+     Assets/Fonts for future edits. No weight 600 or 800 face exists in
+     this type system, so the Bold/Black faces are registered to cover
+     those requests too (font-weight ranges below). */
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Regular.otf") format("opentype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Medium.otf") format("opentype");
+    font-weight: 500; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Bold.otf") format("opentype");
+    font-weight: 600 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Black.otf") format("opentype");
+    font-weight: 800 900; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSerif";
+    src: url("Assets/Fonts/AthleticSerif/AthleticSerif-Regular.otf") format("opentype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSerifPoster";
+    src: url("Assets/Fonts/AthleticSerifPoster/AthleticSerifPoster-Bold.otf") format("opentype");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSlab";
+    src: url("Assets/Fonts/AthleticSlab/AthleticSlab-Bold.otf") format("opentype");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+
+  :root {
+    /* Chalk dark-mode grayscale (this module lives on the dark iOS home feed) */
+    --gray-100: #000000;
+    --gray-200: #121212;
+    --gray-300: #323232;
+    --gray-400: #52524F;
+    --gray-500: #969693;
+    --gray-600: #C4C4C0;
+    --gray-700: #F0F0EE;
+    --gray-800: #FFFFFF;
+
+    --accent-green: #4EAB75;  /* Chalk Green, dark mode */
+    --accent-red: #FD5757;    /* Chalk Red, dark mode */
+    --bright-green: #2ECC58;  /* vs.-last-week movement: up */
+    --bright-red: #FF3B30;    /* vs.-last-week movement: down */
+
+    --font-slab: "AthleticSerifPoster", Georgia, "Times New Roman", serif;
+    --font-slab-bold: "AthleticSlab", Georgia, "Times New Roman", serif;
+    --font-franklin: "AthleticSans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --font-imperial: "AthleticSerif", Georgia, "Times New Roman", Times, serif;
+
+    --canvas-bg: #3D3D3D;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--canvas-bg);
+    font-family: var(--font-franklin);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Device-width column so the module previews the way it will on an iOS
+     home feed, but the page itself is happy to sit on any viewport. */
+  .device {
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--gray-200);
+    min-height: 100vh;
+  }
+
+  /* --- Minimal home-feed chrome, just enough to place the module in context */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .masthead {
+    padding: 4px 16px 14px;
+    color: var(--gray-800);
+    font-family: var(--font-slab);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .feed-filler {
+    padding: 18px 16px;
+    color: var(--gray-500);
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .feed-filler-row {
+    height: 64px;
+    border-radius: 10px;
+    background: var(--gray-300);
+    margin: 0 16px 10px;
+    opacity: 0.5;
+  }
+
+  /* ============ Power Rankings module ============ */
+  .rankings-module { padding: 20px 0 28px; }
+
+  .rankings-header {
+    padding: 0 16px;
+    margin-bottom: 10px;
+  }
+  /* League pill — outlined chip with a league mark, mirroring the
+     competition pill in reference-rankings/IMG_9583.PNG. */
+  .rankings-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px 5px 8px;
+    border: 1.5px solid var(--gray-500);
+    border-radius: 999px;
+  }
+  .rankings-pill-icon {
+    display: block;
+    height: 20px;
+    width: 20px;
+    object-fit: contain;
+  }
+  .rankings-pill-label {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--gray-800);
+  }
+  .rankings-title {
+    margin: 0;
+    padding: 0 16px;
+    font-family: var(--font-slab);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--gray-800);
+  }
+
+  .rankings-dek {
+    margin: 6px 0 2px;
+    padding: 0 16px;
+    font-family: var(--font-imperial);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+
+  .rankings-my-list-link {
+    display: block;
+    margin: 10px 16px 2px;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--accent-green);
+    text-decoration: underline;
+  }
+
+  .rankings-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    margin: 8px 0 12px;
+  }
+  .rankings-swipe-hint {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--gray-500);
+  }
+  .rankings-counter {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: var(--gray-700);
+    background: var(--gray-300);
+    border-radius: 20px;
+    padding: 4px 10px;
+    min-width: 46px;
+    text-align: center;
+  }
+  .rankings-meta-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Stay pinned right even when the swipe hint is hidden (list view) —
+       "space-between" only works while both flex items are present. */
+    margin-left: auto;
+  }
+  /* Card view / list view toggle, echoing the reference screenshot's pill
+     of two icon buttons. */
+  .view-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--gray-300);
+    border-radius: 16px;
+    padding: 2px;
+  }
+  .view-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 22px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--gray-500);
+    cursor: pointer;
+  }
+  .view-toggle-btn.active {
+    background: var(--gray-700);
+    color: var(--gray-100);
+  }
+
+  /* --- Tighter single-card list view (alternative to the carousel) ------ */
+  .rankings-list {
+    margin: 0 16px 12px;
+    background: var(--gray-200);
+    border: 1px solid var(--gray-300);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .rankings-list-titlebar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 14px 14px;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .rankings-list-wordmark { height: 9px; width: auto; }
+  .rankings-list-title {
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.2px;
+    color: var(--gray-800);
+  }
+  .rankings-list-byline {
+    font-family: var(--font-imperial);
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--gray-500);
+  }
+  .rankings-list-header,
+  .rankings-list-row {
+    display: grid;
+    grid-template-columns: 36px 34px 1fr 48px 46px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .rankings-list-header {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--gray-500);
+  }
+  .rankings-list-header span:nth-child(4),
+  .rankings-list-header span:nth-child(5) { text-align: right; }
+  .rankings-list-row { border-top: 1px solid var(--gray-300); }
+  .rlr-rank {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--gray-800);
+  }
+  .rlr-chg {
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .rlr-chg.up { color: var(--bright-green); animation: driftUp 3.8s ease-in-out infinite; }
+  .rlr-chg.down { color: var(--bright-red); animation: driftDown 3.8s ease-in-out infinite; }
+  .rlr-chg.steady { color: var(--gray-500); }
+  @media (prefers-reduced-motion: reduce) {
+    .rlr-chg.up, .rlr-chg.down { animation: none; }
+  }
+  .rlr-team {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    color: var(--gray-800);
+  }
+  .rlr-team-logo {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
+  .rlr-team-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rlr-record {
+    text-align: right;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12.5px;
+    color: var(--gray-600);
+  }
+  .rlr-avg {
+    text-align: right;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--gray-800);
+  }
+
+  /* --- Carousel track. Cards sit at 86% of the track width so the next
+     card visibly peeks in at the right edge — the signal that this scrolls. */
+  .rankings-row { position: relative; }
+  .rankings-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 2px 16px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline-start: 16px;
+    scrollbar-width: none;
+  }
+  .rankings-track::-webkit-scrollbar { display: none; }
+
+  .rankings-row::before,
+  .rankings-row::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.18s ease-out;
+  }
+  .rankings-row::before {
+    left: 0;
+    background: linear-gradient(to right, var(--gray-200), transparent);
+    opacity: 0;
+  }
+  .rankings-row::after {
+    right: 0;
+    background: linear-gradient(to left, var(--gray-200), transparent);
+    opacity: 1;
+  }
+  .rankings-row.is-scrolled::before { opacity: 1; }
+  .rankings-row.is-at-end::after { opacity: 0; }
+
+  /* --- Individual team card -------------------------------------------- */
+  /* Trading-card-inspired proportions, but tall enough that two full
+     sentences of blurb still show in the collapsed view without scrolling. */
+  .rank-card {
+    position: relative;
+    flex: 0 0 86%;
+    aspect-ratio: 5 / 9;
+    scroll-snap-align: start;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--gray-200);
+    border: 3px solid #F4EFE1;
+    box-shadow:
+      0 0 0 3px var(--card-accent, var(--gray-300)),
+      0 8px 18px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+  }
+  /* The 5/9 ratio above is tuned tight for real phone widths (375-430,
+     where card content nearly fills the card already). Above that — i.e.
+     a desktop browser, where the page's own 430px cap is what's actually
+     rendering — the same ratio leaves a lot of dead space below the byline
+     before the spotlight row, since text content doesn't grow with the
+     wider frame. Shorten the card there so that gap is roughly halved. */
+  @media (min-width: 431px) {
+    .rank-card { aspect-ratio: 5 / 7.8; }
+  }
+  /* Expanding "more" can add enough copy to no longer fit the card's normal
+     aspect-ratio height. Rather than let that scroll inside the card, drop
+     the ratio and grow the card to fit its content — min-height (set inline
+     in JS from the card's height right before expanding) keeps it from ever
+     looking shorter than its normal collapsed size. */
+  .rank-card.is-expanded {
+    aspect-ratio: auto;
+    height: auto;
+  }
+  .rank-card.is-expanded .rank-card-bottom {
+    overflow-y: visible;
+  }
+
+  /* Top row: team name/subtitle only now (the icon moved off to the black
+     area above "Season stats" so the name gets the whole row). Left padding
+     clears the corner triangle. */
+  .rank-card-top {
+    position: relative;
+    min-width: 0;
+    padding: 16px 16px 18px 94px;
+    display: flex;
+    align-items: center;
+  }
+  /* Rank corner — a diagonal cutout wedge in the top-left, referencing the
+     triangular photo cutout in the bottom-right of Baseball Card2.png,
+     mirrored to the opposite corner. Sized (and the top panel's left padding
+     matched) so it never overlaps the team icon next to it. */
+  .rank-corner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 104px;
+    height: 104px;
+    background: #F4EFE1;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+  .rank-corner-value {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1;
+    color: #000000;
+  }
+  .rank-corner-value.is-tied { font-size: 27px; top: 10px; left: 6px; }
+  .rank-name-block { min-width: 0; }
+  .rank-team-name {
+    margin: 0;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+  }
+  .rank-subtitle {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12.5px;
+    opacity: 0.85;
+  }
+  /* vs.-last-week movement — bare arrow + number sitting directly on the
+     team-color panel (no pill/chip), bottom-right. A dark drop shadow keeps
+     it legible even when a team's own color is itself red or green. */
+  .rank-movement {
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .rank-movement.up { color: var(--bright-green); }
+  .rank-movement.down { color: var(--bright-red); }
+  .rank-movement.steady { color: var(--gray-700); }
+
+  /* Live, breathing feel: the up arrow drifts upward as it fades in (then
+     back down as it fades out), the down arrow mirrors that downward — a
+     little motion cue for "vs. last week" instead of a static label. */
+  @keyframes driftUp {
+    0%   { opacity: 0; transform: translateY(7px); }
+    18%  { opacity: 1; transform: translateY(0); }
+    72%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-7px); }
+  }
+  @keyframes driftDown {
+    0%   { opacity: 0; transform: translateY(-7px); }
+    18%  { opacity: 1; transform: translateY(0); }
+    72%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(7px); }
+  }
+  /* Steady (no change) has no up/down direction, so it drifts sideways
+     instead — same fade/hold/fade envelope, just along the dash's own axis.
+     Expanded card view only; the collapsed list view keeps it static. */
+  @keyframes driftSteady {
+    0%   { opacity: 0; transform: translateX(-7px); }
+    18%  { opacity: 1; transform: translateX(0); }
+    72%  { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(7px); }
+  }
+  .rank-movement.up { animation: driftUp 3.8s ease-in-out infinite; }
+  .rank-movement.down { animation: driftDown 3.8s ease-in-out infinite; }
+  .rank-movement.steady { animation: driftSteady 3.8s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .rank-movement.up, .rank-movement.down, .rank-movement.steady { animation: none; }
+  }
+
+  /* --- Bottom: glanceable 3-stat row, blurb, then the spotlight "byline" -- */
+  .rank-card-bottom {
+    flex: 1;
+    min-height: 0;
+    padding: 16px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+  /* Icon lives here now (moved off the header row) — centered above the
+     "Season stats" title instead of next to the team name. */
+  /* EXPERIMENT: stats sit to the right of the logo instead of below it. */
+  .rank-stats-block {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 26px;
+    margin: 10px 0 14px;
+  }
+  .rank-stats-text { min-width: 0; }
+  .rank-icon-circle {
+    position: relative;
+    flex: 0 0 72px;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+  /* One-click "follow this team" — half-overlaid on the logo circle like a
+     notification badge, so it reads as an action stuck onto the graphic
+     rather than a layout element. */
+  .rank-follow-btn {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--gray-200);
+    background: var(--gray-800);
+    color: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .rank-follow-btn.is-following {
+    background: var(--bright-green);
+    color: #FFFFFF;
+  }
+  .rank-icon-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .rank-stats-title {
+    display: block;
+    text-align: left;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--gray-700);
+    margin-bottom: 10px;
+  }
+  .rank-stats-cols {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 32px;
+  }
+  .rank-stat { text-align: left; }
+  .rank-stat-value {
+    display: block;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--gray-800);
+    line-height: 1;
+  }
+  .rank-stat-label {
+    display: block;
+    margin-top: 5px;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-500);
+  }
+  .rank-divider {
+    height: 1px;
+    background: var(--gray-300);
+  }
+  .rank-byline {
+    margin: -6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-imperial);
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--gray-500);
+  }
+  .rank-byline-photo {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: grayscale(100%);
+  }
+  .rank-spotlight-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 14px;
+  }
+  .rank-spotlight-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  /* Icon-only glass button — same Liquid Glass material as .rank-movement:
+     translucent + blurred with a bright top edge, so it reads as a piece of
+     glass sitting on the card rather than a flat gray chip. */
+  .rank-share-btn {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    color: var(--gray-800);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -6px 10px rgba(255, 255, 255, 0.05),
+      0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .rank-share-btn:hover { background: rgba(255, 255, 255, 0.22); }
+  .rank-share-btn:active { background: rgba(255, 255, 255, 0.3); }
+  .rank-player-avatar {
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  .rank-player-silhouette {
+    position: relative;
+    width: 60%;
+    height: 60%;
+    opacity: 0.75;
+  }
+  .rank-player-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .rank-spotlight-text { min-width: 0; }
+  .rank-spotlight-label {
+    display: block;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent-green);
+    margin-bottom: 1px;
+  }
+  .rank-spotlight-value {
+    display: block;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--gray-800);
+  }
+  .rank-blurb {
+    margin: 0;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+  .rank-more-btn,
+  .rank-less-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    margin-left: 3px;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-700);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ============ "My Power Rankings" drag-to-reorder tool ============ */
+  /* Lightbox: centered with a visible margin on every side, unlike a
+     bottom-sheet that pins to the bottom edge. */
+  .myrank-overlay {
+    position: fixed;
+    inset: 0;
+    max-width: 430px;
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+  }
+  .myrank-overlay[hidden] { display: none; }
+  .myrank-modal {
+    position: relative;
+    width: 100%;
+    max-height: 82vh;
+    background: var(--gray-200);
+    border-radius: 20px;
+    border: 1px solid var(--gray-300);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .myrank-modal-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .myrank-close {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--gray-300);
+    color: var(--gray-800);
+    cursor: pointer;
+  }
+  .myrank-modal-title {
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--gray-800);
+  }
+  .myrank-modal-spacer { flex: 0 0 30px; }
+  .myrank-instructions {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 10px 16px;
+    font-family: var(--font-imperial);
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+  .myrank-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 10px 96px;
+  }
+  /* Thin fade at the bottom of the modal so the last rows scroll under the
+     floating actions rather than butting right up against them. */
+  .myrank-list-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 64px;
+    background: linear-gradient(to bottom, transparent, var(--gray-200));
+    pointer-events: none;
+  }
+  .myrank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 6px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+  }
+  .myrank-row.is-dragging {
+    background: var(--gray-300);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+    opacity: 0.95;
+  }
+  .myrank-handle {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    cursor: grab;
+  }
+  .myrank-rank {
+    flex: 0 0 26px;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--gray-800);
+    text-align: center;
+  }
+  .myrank-logo {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+  .myrank-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    color: var(--gray-800);
+  }
+  /* Floating action cluster — bottom-right of the modal, hidden until the
+     user actually starts dragging (an untouched list has nothing to save). */
+  .myrank-floating-actions {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .myrank-saved-note {
+    margin: 0 4px 0 0;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--bright-green);
+    white-space: nowrap;
+  }
+  .myrank-share-btn {
+    flex: 0 0 auto;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+  .myrank-reset-btn {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    padding: 0;
+    margin-right: 2px;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--gray-500);
+    text-decoration: underline;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+  }
+  /* Muted green (less saturated than --bright-green) — the only action
+     needed now that reordering auto-saves; no separate Save button. */
+  .myrank-share-btn {
+    border: 1px solid var(--accent-green);
+    background: var(--accent-green);
+    color: #06210F;
+  }
+
+  /* ============ Share sheet ============ */
+  /* A bottom sheet (not a centered lightbox like the My Power Rankings
+     modal) so it reads as a native iOS-style share sheet sliding up over
+     the page — modeled on reference-rankings/IMG_9743.PNG. */
+  .share-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    max-width: 430px;
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .share-sheet-overlay[hidden] { display: none; }
+  .share-sheet {
+    width: 100%;
+    max-height: 88vh;
+    background: var(--gray-800);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .share-sheet-handle {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gray-500);
+    margin: 10px auto 2px;
+  }
+  .share-sheet-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 6px;
+  }
+  .share-sheet-title {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--gray-100);
+  }
+  .share-sheet-close {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--gray-700);
+    color: var(--gray-200);
+    cursor: pointer;
+  }
+  .share-sheet-preview {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 6px 20px 4px;
+    border-radius: 14px;
+    border: 1px solid var(--gray-600);
+    background: var(--gray-700);
+  }
+  /* Main title area uses the brand Core Green — the wordmark asset is
+     white-only and needs a dark ground, and this also reads as one clear
+     header instead of competing with the generated graphic's own title. */
+  .share-sheet-preview-header {
+    border-radius: 13px 13px 0 0;
+    padding: 16px 16px 14px;
+    background: #15332D;
+    text-align: center;
+  }
+  .share-sheet-preview-title {
+    margin: 0;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 18px;
+    color: #FFFFFF;
+  }
+  .share-sheet-preview-powered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .share-sheet-preview-powered span {
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .share-sheet-preview-powered img {
+    height: 9px;
+    width: auto;
+    display: block;
+  }
+  .share-sheet-preview-media {
+    padding: 0;
+  }
+  /* Full bleed — the canvas's own alternating row fill should run edge to
+     edge inside the card, not sit inset with rounded corners of its own. */
+  .share-sheet-preview-img {
+    display: block;
+    width: 100%;
+  }
+  .share-sheet-preview-img[hidden] { display: none; }
+  /* Pinned to the bottom of the (scrollable) preview card so it stays put
+     while the full 30-team list scrolls underneath it, rather than
+     scrolling away with the image. */
+  .share-sheet-show-all {
+    position: sticky;
+    bottom: 0;
+    display: block;
+    width: 100%;
+    padding: 12px 0 14px;
+    border: none;
+    border-top: 1px solid var(--gray-600);
+    background: var(--gray-700);
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--gray-200);
+    text-decoration: underline;
+    text-align: center;
+    cursor: pointer;
+  }
+  .share-sheet-show-all[hidden] { display: none; }
+  .share-sheet-preview-loading {
+    margin: 0;
+    padding: 40px 0;
+    font-family: var(--font-franklin);
+    font-size: 12px;
+    color: var(--gray-500);
+    text-align: center;
+  }
+  .share-sheet-actions {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 18px 14px 28px;
+  }
+  .share-sheet-action {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+  .share-sheet-action[hidden] { display: none; }
+  .share-sheet-action-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--gray-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-200);
+  }
+  .share-sheet-action-icon svg { width: 19px; height: 19px; }
+  .share-sheet-action-label {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 10.5px;
+    color: var(--gray-400);
+  }
+</style>
+</head>
+<body>
+
+  <div class="device">
+
+    <!-- Minimal home-feed chrome, just enough to place the module in context -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>●●●●&nbsp;&nbsp;📶&nbsp;&nbsp;🔋</span>
+    </div>
+    <div class="masthead">The Athletic</div>
+
+    <div class="feed-filler">Top headlines</div>
+    <div class="feed-filler-row"></div>
+    <div class="feed-filler-row"></div>
+
+    <!-- ============ Power Rankings carousel module ============ -->
+    <section class="rankings-module" aria-label="MLB Power Rankings">
+
+      <div class="rankings-header">
+        <div class="rankings-pill">
+          <img class="rankings-pill-icon" src="iOS/assets/icons/leagues/mlb.png" alt="" width="20" height="20">
+          <span class="rankings-pill-label">MLB</span>
+        </div>
+      </div>
+
+      <h2 class="rankings-title">MLB Power Rankings</h2>
+
+      <p class="rankings-dek">All eyes are on these players heading into the second half. Our panel of writers ranks all 30 teams first to worst. Stats through Monday morning.</p>
+
+      <a class="rankings-my-list-link" href="#" id="openMyRankings">Make my power rankings list</a>
+
+      <div class="rankings-meta-row">
+        <span class="rankings-swipe-hint" id="rankSwipeHint">Swipe for all 30 teams →</span>
+        <div class="rankings-meta-right">
+          <span class="rankings-counter" id="rankCounter">1 / 30</span>
+          <div class="view-toggle" role="group" aria-label="Switch between card and list view">
+            <button type="button" class="view-toggle-btn active" id="viewToggleCards" aria-label="Card view" aria-pressed="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="2.6" />
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              </svg>
+            </button>
+            <button type="button" class="view-toggle-btn" id="viewToggleList" aria-label="List view" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+                <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="6" x2="20" y2="6" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+                <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="12" x2="20" y2="12" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+                <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="18" x2="20" y2="18" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rankings-row" id="rankingsRow">
+        <div class="rankings-track" id="rankingsTrack"><!-- cards render here --></div>
+      </div>
+
+      <div class="rankings-list" id="rankingsList" hidden>
+        <div class="rankings-list-titlebar">
+          <img class="rankings-list-wordmark" src="Assets/iOS/iOS/Brand%20wordmark.svg" alt="The Athletic" width="100" height="13">
+          <span class="rankings-list-title">MLB Power Rankings</span>
+          <span class="rankings-list-byline">By Tim Britton, Johnny Flores Jr. and Andy McCullough</span>
+        </div>
+        <div class="rankings-list-header">
+          <span>Rank</span>
+          <span>Chg</span>
+          <span>Team</span>
+          <span>Record</span>
+          <span>Avg. Rank</span>
+        </div>
+        <div id="rankingsListRows"><!-- list rows render here --></div>
+      </div>
+
+    </section>
+
+    <div class="feed-filler">More from your feed</div>
+    <div class="feed-filler-row"></div>
+    <div class="feed-filler-row"></div>
+
+    <!-- ============ "My Power Rankings" drag-to-reorder tool ============ -->
+    <div class="myrank-overlay" id="myRankOverlay" hidden>
+      <div class="myrank-modal">
+        <div class="myrank-modal-header">
+          <button type="button" class="myrank-close" id="myRankClose" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+              <line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="5" y1="5" x2="19" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="19" y1="5" x2="5" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+            </svg>
+          </button>
+          <span class="myrank-modal-title">My Power Rankings</span>
+          <span class="myrank-modal-spacer"></span>
+        </div>
+        <p class="myrank-instructions">Drag teams to rank them first to worst. Your list saves automatically.</p>
+        <div class="myrank-list" id="myRankList"><!-- draggable rows render here --></div>
+        <div class="myrank-list-fade"></div>
+        <div class="myrank-floating-actions" id="myRankFloatingActions" hidden>
+          <span class="myrank-saved-note" id="myRankSavedNote" hidden>Saved</span>
+          <button type="button" class="myrank-reset-btn" id="myRankReset">Reset</button>
+          <button type="button" class="myrank-share-btn" id="myRankShare">Share</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ Share sheet (opened by "Share" above) ============ -->
+    <div class="share-sheet-overlay" id="shareSheetOverlay" hidden>
+      <div class="share-sheet">
+        <div class="share-sheet-handle"></div>
+        <div class="share-sheet-header">
+          <span class="share-sheet-title">Share</span>
+          <button type="button" class="share-sheet-close" id="shareSheetClose" aria-label="Close">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+              <line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="5" y1="5" x2="19" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="19" y1="5" x2="5" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+            </svg>
+          </button>
+        </div>
+        <div class="share-sheet-preview">
+          <div class="share-sheet-preview-header">
+            <p class="share-sheet-preview-title">My MLB Power Rankings</p>
+            <div class="share-sheet-preview-powered">
+              <span>Powered by</span>
+              <img src="Assets/iOS/iOS/Brand%20wordmark.svg" alt="The Athletic" width="70" height="9">
+            </div>
+          </div>
+          <div class="share-sheet-preview-media">
+            <img class="share-sheet-preview-img" id="shareSheetPreviewImg" alt="Preview of your MLB Power Rankings list" hidden>
+            <p class="share-sheet-preview-loading" id="shareSheetLoading">Generating preview…</p>
+          </div>
+          <button type="button" class="share-sheet-show-all" id="shareShowAll" hidden>Show all 30 teams</button>
+        </div>
+        <div class="share-sheet-actions" id="shareSheetActions">
+          <button type="button" class="share-sheet-action" id="shareSaveBtn">
+            <span class="share-sheet-action-icon" id="shareSaveIcon"></span>
+            <span class="share-sheet-action-label">Save Image</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareCopyBtn">
+            <span class="share-sheet-action-icon" id="shareCopyIcon"></span>
+            <span class="share-sheet-action-label">Copy</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareMessageBtn">
+            <span class="share-sheet-action-icon" id="shareMessageIcon"></span>
+            <span class="share-sheet-action-label">Message</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareWhatsappBtn">
+            <span class="share-sheet-action-icon" id="shareWhatsappIcon"></span>
+            <span class="share-sheet-action-label">WhatsApp</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareInstagramBtn">
+            <span class="share-sheet-action-icon" id="shareInstagramIcon"></span>
+            <span class="share-sheet-action-label">Instagram</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  // ---- Single source of truth for the carousel's data --------------------
+  // Field notes (see reference-rankings/design-style.md, "Data model implied
+  // by the editorial format"):
+  //   rank        — display rank, with "T-" prefix shared by ties
+  //   rankNum     — numeric rank used to order the list and compute movement
+  //   lastRankNum — previous week's numeric rank; rankNum vs lastRankNum
+  //                 derives the up/down/steady movement indicator (the source
+  //                 article never draws an arrow, it just states both numbers)
+  //   avg         — panel's average ranking (decimal tiebreaker)
+  //   teamId      — Athletic team id, feeds teamLogoURL() below (same helper
+  //                 iOS/data/teams.js already uses for real team crests)
+  //   spotlightValue — this edition's variable-label callout (a player, or
+  //                 occasionally a unit like "The bullpen")
+  //   blurb       — two-sentence summary, ends in an ellipsis so it reads as
+  //                 a teaser into the full write-up rather than the whole story
+  const TEAMS = [
+    { rank: "1", rankNum: 1, lastRankNum: 1, teamId: 106, team: "Los Angeles Dodgers", color: "#005A9C", record: "63-38", avg: "1.0", photoId: 663656, spotlightValue: "Kyle Tucker", author: "Andy McCullough", blurb: "The Dodgers entered the second half with the best record in baseball. The offense ranks first in OPS. The pitching staff ranks third in ERA. They are the back-to-back champs and a three-peat looks within reach. They are doing all of this during a season in which Blake Snell has thrown three innings, Edwin Díaz has a 10.50 ERA and Tucker is performing like a league-average hitter. The Dodgers expected far better than a 100 OPS+ when the club splurged on him last winter. Maybe he will crank it up in time to learn a lesson about creating a legacy in Los Angeles: with the Dodgers, only October really matters." },
+    { rank: "2", rankNum: 2, lastRankNum: 2, teamId: 108, team: "Milwaukee Brewers", color: "#12284B", record: "63-37", avg: "2.0", photoId: 592885, spotlightValue: "Christian Yelich", author: "Johnny Flores Jr.", blurb: "Last week, Cody Bellinger was named All-Star Game MVP, providing a stark reminder that, at one point, Belli vs. Yeli was a thing, and that the latter was primed for face-of-MLB stardom. That's before multiple back injuries sapped him of his power and availability. A year ago, it seemed like Yelich had turned a corner, though it might've been a mirage. The DH entered the break with a 96 wRC+, striking out more than he ever has in a full 162-game season. Milwaukee has managed to win without him, as it's had to do for some time, but the Yeli of yore could be a massive boon for a club that is oh so close to a World Series appearance." },
+    { rank: "3", rankNum: 3, lastRankNum: 5, teamId: 111, team: "New York Yankees", color: "#0C2340", record: "56-44", avg: "4.2", photoId: 665862, spotlightValue: "Jazz Chisholm Jr.", author: "Tim Britton", blurb: "At the risk of getting ahead of ourselves, it looks as if Chisholm may fall just a touch shy of that 50-50 proclamation he made before the season. To this point, it hasn't been the platform year the second baseman would have liked, though the second half and a likely shot at October can change that narrative rather swiftly. With Aaron Judge sidelined for who knows how much longer, the Yankees need Chisholm as much as ever. And he could use a big finishing kick to the year to enter free agency on a high note." },
+    { rank: "4", rankNum: 4, lastRankNum: 3, teamId: 94, team: "Atlanta Braves", color: "#13274F", record: "58-41", avg: "4.3", photoId: 660670, spotlightValue: "Ronald Acuña Jr.", author: "Tim Britton", blurb: "Atlanta doesn't need anything extraordinary from its star; it simply needs Acuña to be Acuña on the field. When he plays this season, the Braves are 37-16. When he doesn't, they're 20-25. When Acuña last played on June 9, his team had a nine-game lead in the National League East. As of this writing, it's down to three over a Phillies team that has been excellent since late April. It was a nice weekend for Atlanta's offense, but getting Acuña back — and that should happen in the next week or so — can bring it back to its usual level among the top lineups in the game." },
+    { rank: "5", rankNum: 5, lastRankNum: 4, teamId: 119, team: "Tampa Bay Rays", color: "#092C5C", record: "57-42", avg: "4.7", spotlightValue: "A deadline addition", author: "Tim Britton", blurb: "No team is as stratified as the Rays, who are getting top-line production from Junior Caminero, Yandy Díaz and Jonathan Aranda in the lineup — and not so much from everyone else. It's an offense screaming for one more productive hitter, be it on the middle infield or in the corner outfield. Because if Tampa Bay doesn't make that kind of addition, it will be banking on that trio — and its three All-Stars on the pitching staff — to maintain this high pace all year." },
+    { rank: "6", rankNum: 6, lastRankNum: 5, teamId: 97, team: "Chicago Cubs", color: "#0E3386", record: "56-44", avg: "5.5", photoId: 608324, spotlightValue: "Alex Bregman", author: "Johnny Flores Jr.", blurb: "A year after striking out on the third baseman, the Cubs ponied up the cash and the contract demands to land Bregman. At times during the first half, Chicago probably wished it hadn't. The 32-year-old is currently in the midst of the worst offensive season of his career, his 97 wRC+ sitting three points below league average. There have been some flashes, including a 10-game stretch to close the first half, and the defense is still solid, but Bregman has otherwise been a non-factor for a Cubs team with major October aspirations. Fortunately, a hot start plus some historic contributions from Pete Crow-Armstrong have the Cubs in wild-card territory, but a contributing Bregman could mean the difference between hosting a series at Wrigley Field in October and playing on the road." },
+    { rank: "7", rankNum: 7, lastRankNum: 7, teamId: 113, team: "Philadelphia Phillies", color: "#E81828", record: "56-45", avg: "9.0", photoId: 607208, spotlightValue: "Trea Turner", author: "Tim Britton", blurb: "Turner is one of the easiest choices on the board as one of the sport's biggest underperformers to this point this season. The 33-year-old is on pace for less than one win above replacement this season (according to FanGraphs). That's about a typical month's worth of production from him. (Entering the season, he'd generated one WAR every 27 games throughout his career.) If he is anything resembling his usual self, the Phillies can mount as serious a challenge to the Dodgers as anyone in the National League." },
+    { rank: "8", rankNum: 8, lastRankNum: 8, teamId: 107, team: "Miami Marlins", color: "#00A3E0", record: "52-49", avg: "9.2", photoId: 805300, spotlightValue: "Jakob Marsee", author: "Tim Britton", blurb: "Marsee looked like a future All-Star during his outstanding debut late last season. He hasn't been able to carry that over into this year, with an average still sitting below .200 and fewer extra-base hits this season than last — despite almost twice the number of games. Although Esteury Ruiz is starting to push Marsee for some time in center field, the best version of the Marlins still has Marsee in the everyday lineup." },
+    { rank: "9", rankNum: 9, lastRankNum: 16, teamId: 96, team: "Boston Red Sox", color: "#BD3039", record: "51-48", avg: "9.3", photoId: 701350, spotlightValue: "Roman Anthony", author: "Tim Britton", blurb: "It's just as we and every caller on The Sports Hub could have told you entering the season: The Red Sox needed to insert Anthony Seigler in the leadoff spot, and then it would all come together! Boston is on a 14-game win streak and is the hottest team in the sport, and right now, all seems well in its world. But when the air comes out of that balloon a bit, the best thing that can happen for the Sox is the return of their most-ballyhooed prospect in the surnamed Anthony, who still has an uncertain timeline. Anthony sure looked the real deal in half a season last year, and if he's anything like that down the stretch, this offense looks more and more capable of capitalizing on one of the game's best pitching staffs." },
+    { rank: "10", rankNum: 10, lastRankNum: 9, teamId: 98, team: "Chicago White Sox", color: "#27251F", record: "53-46", avg: "10.2", photoId: 641743, spotlightValue: "Anthony Kay", author: "Johnny Flores Jr.", blurb: "After two seasons in Japan, where he posted a 2.84 ERA in 48 games, the White Sox signed Kay to a two-year, $12 million contract with a mutual option for the 2028 season. So far, his return stateside has been a mixed bag of sorts. Entering Monday, Kay had a 4.24 ERA over 20 games (18 starts), though xERA (5.34) and FIP (5.08) suggest he's been a bit worse than advertised. There have been some highlights, like six scoreless innings against the Guardians in June, as well as some lowlights, like a six-run blowup against the Phillies, also in June. Kay also leads the league with 18 hit-by-pitches. Any more and he's putting himself in territory with guys named James McJames and Phenomenal Smith." },
+    { rank: "11", rankNum: 11, lastRankNum: 12, teamId: 114, team: "Pittsburgh Pirates", color: "#FDB827", textColor: "#121212", record: "52-49", avg: "11.0", photoId: 694973, spotlightValue: "Paul Skenes", author: "Johnny Flores Jr.", blurb: "Wait, are we really suggesting that the reigning NL Cy Young Award winner needs to pick it up? Yes, and hear me out. Over his last 11 starts before Sunday, dating back to mid-May, Skenes posted a 4.94 ERA, allowing 32 runs on 62 hits, including 7 home runs. In those 11 starts, Pittsburgh has gone 2-9. For reference, last season, over 32 starts, Skenes allowed 41 runs and 11 home runs. He could be on his way to correcting things, as he tossed seven innings of one-run ball on Sunday." },
+    { rank: "12", rankNum: 12, lastRankNum: 10, teamId: 116, team: "Seattle Mariners", color: "#0C2C56", record: "51-50", avg: "11.8", photoId: 680977, spotlightValue: "Brendan Donovan", author: "Andy McCullough", blurb: "Remember that guy? Gold Glover in 2022. All-Star in 2025. Plays all the positions. Gets on base, hits a bunch of doubles. The Mariners saw Donovan as the last piece of the puzzle for a team that finished one victory shy of the World Series. At this point, they would settle for seeing any version of him at all. Donovan has not played since May. He has been sidelined with a hamstring strain related to offseason surgery to repair a sports hernia. The Mariners have been waylaid by injuries this season. But the American League West is still there for the taking, especially if they can get healthy. Or if, you know, the version of Cal Raleigh from 2025 ever makes an appearance." },
+    { rank: "13", rankNum: 13, lastRankNum: 11, teamId: 118, team: "St. Louis Cardinals", color: "#C41E3A", record: "51-48", avg: "12.7", photoId: 669461, spotlightValue: "Matthew Liberatore", author: "Johnny Flores Jr.", blurb: "In any other year, providing extended runway to a former top pitching prospect as they navigated the workload of a starter would be fine. Except the Cardinals, despite signaling for a rebuild over the winter, aren't in any other year. St. Louis entered the All-Star break just one game back of the third wild-card spot. October is a real possibility for these Cards, and giving Liberatore a go every fifth day is on the verge of becoming untenable. That's especially true if St. Louis takes a middle-level approach at the deadline, likely sending away Dustin May and adding around the margins, putting even more need on solid starting pitching." },
+    { rank: "14", rankNum: 14, lastRankNum: 13, teamId: 100, team: "Cleveland Guardians", color: "#00385D", record: "53-48", avg: "14.2", photoId: 700932, spotlightValue: "Kyle Manzardo", author: "Johnny Flores Jr.", blurb: "Only one first baseman (Ildemaro Vargas) entered the break with a lower wRC+ than Manzardo's 91, and none were worth less fWAR than the 25-year-old. For a Cleveland club that needs all the offense it can muster, those aren't good looks. It's unlikely that the Guardians will move on from Manzardo, and even less so that they'd pursue a serious deadline upgrade, meaning Manzardo has to pick it up. It doesn't help that Rhys Hoskins has been just as bad, leaving very little room for reprieve." },
+    { rank: "15", rankNum: 15, lastRankNum: 14, teamId: 120, team: "Texas Rangers", color: "#003278", record: "50-50", avg: "15.2", photoId: 694671, spotlightValue: "Wyatt Langford", author: "Andy McCullough", blurb: "With Corey Seager back on the injured list, Texas needs Langford to put it all together. He hinted at his offensive potential in 2024 and 2025. This has been his most productive season at the plate, with nine homers and an .819 OPS. The presence of Josh Jung, Joc Pederson and Brandon Nimmo means Langford won't have to go it alone. But when the Rangers chose him with the No. 4 pick in 2023, the organization envisioned him as a hitter who could carry a lineup. The opportunity is there." },
+    { rank: "16", rankNum: 16, lastRankNum: 15, teamId: 122, team: "Washington Nationals", color: "#AB0003", record: "51-50", avg: "16.2", photoId: 660688, spotlightValue: "Keibert Ruiz", author: "Tim Britton", blurb: "We could pick any number of Nationals breakout bats here, be it CJ Abrams doing this for the full 162 this time or Luis García Jr. hitting 35 homers or Curtis Mead bopping 30. But when in doubt, go with the guy already signed to the long-term contract extension — the guy who seemed like a lost cause and a cautionary tale at the start of the season. Instead, Ruiz is in the midst of the best season of his career and looking like an actual part of the present and future for a team on the way up." },
+    { rank: "17", rankNum: 17, lastRankNum: 17, teamId: 93, team: "Arizona Diamondbacks", color: "#A71930", record: "51-49", avg: "16.8", photoId: 669203, spotlightValue: "Corbin Burnes", author: "Andy McCullough", blurb: "The Diamondbacks may be past the point of hoping for better from Zac Gallen and Merrill Kelly. Kelly finished the first half with a 5.38 ERA in 16 starts. A 6.34 ERA in 19 outings earned Gallen the humbling first-half National League Cy Yuk award given out by our Jayson Stark. Perhaps the club will experience better luck if Burnes can make it back this season as he recovers from Tommy John surgery. A shoulder strain delayed Burnes' rehab, but he resumed a throwing program before the All-Star break. If he could make it back by September, Arizona could surely use him." },
+    { rank: "18", rankNum: 18, lastRankNum: 19, teamId: 102, team: "Detroit Tigers", color: "#0C2340", record: "47-53", avg: "17.5", photoId: 434378, spotlightValue: "Justin Verlander", author: "Johnny Flores Jr.", blurb: "Since signing a one-year, $13 million deal before spring training, Verlander has made a grand total of one start for Detroit, and it was on the road. Whenever the 43-year-old comes off the 60-day IL, he's not expected to magically steer the Tigers to October — though wouldn't that be neat. With time ticking on Verlander's final season, it's all about the firsts and lasts. His first start back at Comerica Park since 2017, his final road trip, his final batter faced, etc. Verlander was already a first-half All-Star by way of commissioner Rob Manfred's “Legend” pick. He has a chance to be a second-half All-Star, too." },
+    { rank: "19", rankNum: 19, lastRankNum: 22, teamId: 115, team: "San Diego Padres", color: "#2F241D", record: "49-51", avg: "18.5", photoId: 592518, spotlightValue: "Manny Machado", author: "Andy McCullough", blurb: "There are plenty of candidates for a resurgence in San Diego. Fernando Tatis Jr. has lost his power. Xander Bogaerts' slugging potential may still be stuck on a luggage conveyor at Logan International Airport. Jackson Merrill keeps taking steps backward from his exceptional rookie campaign in 2024. Jake Cronenworth is stumbling through the worst offensive season of his career. At least Machado is trending upward. After a wretched start, he has posted an .801 OPS since June 1. As the Padres cling to relevance in the wild-card race, an extended revival from Machado would be quite helpful." },
+    { rank: "20", rankNum: 20, lastRankNum: 21, teamId: 109, team: "Minnesota Twins", color: "#002B5C", record: "49-52", avg: "19.7", spotlightValue: "The bullpen", author: "Johnny Flores Jr.", blurb: "The spirit of this exercise is to identify one player who could and should pick it up for their team. But the Twins' bullpen as a whole has been so bad that it's worth breaking the rules to put a spotlight on an entire staff of underachievers. Whether it's Eric Orze and his 11.1 percent walk rate, Taylor Rogers' .966 OPS against right-handed batters or the many no-name guys simply filling a void, there's a lot of room for improvement. So much so that with a league-average 'pen, Minnesota would likely be in a three-way race with Chicago and Cleveland for the AL Central title. Instead, it's on the outside looking in." },
+    { rank: "T-21", rankNum: 21, lastRankNum: 18, teamId: 103, team: "Houston Astros", color: "#002D62", record: "48-54", avg: "21.0", photoId: 686613, spotlightValue: "Hunter Brown", author: "Andy McCullough", blurb: "A shoulder strain limited Brown, who finished third in American League Cy Young voting last season, to seven outings in the first half. Since returning in June, he has been effective but not dominant. The Astros could use a bit more as they try to claw through the clump of mediocre teams bunched together in both the AL West and the wild-card race." },
+    { rank: "T-21", rankNum: 21, lastRankNum: 20, teamId: 121, team: "Toronto Blue Jays", color: "#134A8E", record: "46-54", avg: "21.0", photoId: 665489, spotlightValue: "Vladimir Guerrero Jr.", author: "Tim Britton", blurb: "Perhaps the wildest stat in baseball's first half was this: Guerrero did not hit a single home run in his home ballpark. The good news is he had also reached this point of July in 2021 without a home run at Rogers Centre. The bad news is the team didn't play there until the final days of July, and Guerrero had been lighting it up in Dunedin and Buffalo. Toronto stands right on the precipice of a deadline decision to go for it in a mediocre American League (despite currently sitting in last) or to take advantage of what could be a great sellers' market with some really strong walk-year assets. Guerrero's performance over the next couple weeks could be the biggest factor." },
+    { rank: "23", rankNum: 23, lastRankNum: 23, teamId: 95, team: "Baltimore Orioles", color: "#DF4601", textColor: "#121212", record: "49-52", avg: "21.6", photoId: 683002, spotlightValue: "Gunnar Henderson", author: "Tim Britton", blurb: "This is the year of shortstop stepbacks, be it from Trea Turner in Philly, Francisco Lindor in Queens or Henderson in Baltimore. (Must be something in the Northeast.) Henderson has been healthy all season but not his usual self, carrying an OBP south of .300 deep into July. At 25, there shouldn't be this much concern about a second consecutive step down from his insane 2024 season. But the O's need Henderson to fuel a run in the here and now, and they could sure use some clarity about his long-term prospects when debating how much to invest in his future." },
+    { rank: "T-24", rankNum: 24, lastRankNum: 25, teamId: 99, team: "Cincinnati Reds", color: "#C6011F", record: "45-54", avg: "25.2", photoId: 553993, spotlightValue: "Eugenio Suárez", author: "Johnny Flores Jr.", blurb: "Needing some semblance of pop and not wanting to commit both dollars and years to any of the marquee free agents, the Reds instead turned back to old friend Eugenio Suárez on a one-year deal. So far, that's looking like a major whiff. Suárez, who clubbed 49 homers last season between Arizona and Seattle, entered the break with a wRC+ of 80. The last time his wRC+ was that low, Cincinnati shipped him off as part of several cost-cutting efforts. The under-the-hood numbers point to someone who isn't barreling or hitting the ball hard, the exact opposite of what he's being paid to do." },
+    { rank: "T-24", rankNum: 24, lastRankNum: 26, teamId: 110, team: "New York Mets", color: "#002D72", record: "42-59", avg: "25.2", photoId: 596019, spotlightValue: "Francisco Lindor", author: "Tim Britton", blurb: "The Mets could use just about anyone to play better in the second half than they did in the first, but no one means more to their long-term outlook right now than Lindor. His season has been interrupted by injuries and marred by uncharacteristic defensive lapses, to say nothing of the constant chatter about his relationship with Juan Soto. (They're in a better place, they both say and most parties agree.) If Lindor looks like Lindor for the next two months, that can create a good deal more certainty about a Mets team hunting a bounceback in 2027." },
+    { rank: "26", rankNum: 26, lastRankNum: 27, teamId: 117, team: "San Francisco Giants", color: "#FD5A1E", textColor: "#121212", record: "42-58", avg: "26.2", photoId: 808982, spotlightValue: "Jung Hoo Lee", author: "Andy McCullough", blurb: "If Buster Posey wants to clear some salary, his roster features plenty of candidates. (Don't ask him how they got there. We're not here to talk about the past.) It may be challenging to find takers for Willy Adames or Matt Chapman. Recent history suggests a deal involving Rafael Devers remains within the realm of possibility — but don't count it. Lee, though, is only 27 and offers a productive, contact-based approach that could help enhance a contender's lineup. If, of course, that contender was willing to take on some portion of the $63 million Lee is owed during the next three seasons. So … yeah. Won't be easy. But then again, very little has come easy to the 2026 Giants." },
+    { rank: "27", rankNum: 27, lastRankNum: 24, teamId: 112, team: "Athletics", color: "#003831", record: "43-57", avg: "26.8", photoId: 671732, spotlightValue: "Lawrence Butler", author: "Andy McCullough", blurb: "The second season of Butler's seven-year, $65.5 million extension has not gone well. There were 257 players to receive at least 200 plate appearances in the first half. Butler's .591 OPS ranks 248th. (His teammate Jeff McNeil was No. 247, at .592.) The Athletics still envision Butler, a solid fielder who hit 43 combined home runs in 2024 and 2025, as part of their future. If he can aid their present, the team might still make a run at October." },
+    { rank: "28", rankNum: 28, lastRankNum: 29, teamId: 105, team: "Los Angeles Angels", color: "#BA0021", record: "40-61", avg: "28.2", photoId: 700712, spotlightValue: "Walbert Ureña", author: "Andy McCullough", blurb: "The player-development folks in Anaheim could use a victory. The farm system entered this season ranked 29th in the sport, according to Keith Law. Former general manager Perry Minasian tended to rush prospects to the majors, though assigning blame to those who work under owner Arte Moreno is always a challenge. Sam Blum has detailed how the chaotic approach hampered the development of certain pitchers. So Ureña, a hard-throwing rookie with a good changeup and a 2.88 ERA, has been a pleasant surprise. The underlying data suggests the second half may be less kind to the 22-year-old. (Those 5.1 walks per nine innings sure seem worrisome.) But, hey, an Angels fan can dream, right?" },
+    { rank: "29", rankNum: 29, lastRankNum: 28, teamId: 101, team: "Colorado Rockies", color: "#333366", record: "40-62", avg: "28.3", photoId: 623474, spotlightValue: "Jimmy Herget", author: "Andy McCullough", blurb: "During the winter, Colorado sent reliever Angel Chivilli to the Yankees for first baseman TJ Rumfield, who has been a pleasant surprise for the less-pitiful Rockies in 2026. Perhaps Paul DePodesta could flip another reliever for a blocked but useful prospect. It doesn't have to be this summer — the Rockies aren't rushing the rebuild. But if there is interest at the deadline in Herget, who does not throw hard but does miss bats, Colorado should take advantage." },
+    { rank: "30", rankNum: 30, lastRankNum: 30, teamId: 104, team: "Kansas City Royals", color: "#004687", record: "41-60", avg: "29.3", photoId: 672580, spotlightValue: "Maikel Garcia", author: "Johnny Flores Jr.", blurb: "A season ago, Garcia had a legitimate case for the AL's Silver Slugger award at third base. A season later, no such case exists. The third baseman has seen his hard-hit rate go from 45.1 percent in 2025 to 41.3 percent in 2026. He's still elite at not chasing or whiffing, and his squared-up percentage is among the best in the league. Yet, that hasn't translated to results. His lack of production is part of the reason why the Royals have gone from potential wild-card contender to one of the league's most disappointing clubs." },
+  ];
+
+  const SPOTLIGHT_LABEL = "Second-half All-Star";
+
+  // Real headshots from each writer's own author page on theathletic.com,
+  // rendered grayscale via CSS — a small black-and-white byline photo.
+  const AUTHOR_PHOTOS = {
+    "Tim Britton": "https://static01.nyt.com/athletic/uploads/wp/2020/01/29223013/HS_Square_0004_Tim-Britton.jpg",
+    "Johnny Flores Jr.": "https://static01.nyt.com/athletic/uploads/wp/2024/07/25095028/Flores-Johnny-Headshot-072924.jpg",
+    "Andy McCullough": "https://static01.nyt.com/athletic/uploads/wp/2020/01/29230727/HS_Square_0037_AndyMcCullough.jpg",
+  };
+
+  // Same CDN pattern iOS/data/teams.js already uses for real team crests.
+  function teamLogoURL(id, size = 96) {
+    return `https://static01.nyt.com/athletic/logos/team/team-logo-${id}-${size}x${size}.png`;
+  }
+
+  // MLB's public headshot CDN, keyed by MLBAM person id (looked up via
+  // statsapi.mlb.com for each named spotlight player). Non-person spotlights
+  // ("The bullpen") have no photoId, so they fall back to the initials avatar.
+  function playerPhotoURL(id, size = 120) {
+    return `https://img.mlbstatic.com/mlb-photos/image/upload/w_${size},q_100/v1/people/${id}/headshot/67/current`;
+  }
+
+  // Player initials for the spotlight avatar. Falls back gracefully for
+  // non-name spotlights ("The bullpen") and strips Jr./Sr./II-style suffixes
+  // so they don't get mistaken for a surname.
+  // Generic "mystery" avatar for spotlight entries with no real headshot
+  // (no photoId at all, e.g. "The bullpen" — or a real photo that fails to
+  // load) — a silhouette instead of initials-on-a-circle.
+  const SILHOUETTE_ICON = `<svg class="rank-player-silhouette" viewBox="0 0 24 24" fill="currentColor" stroke="rgba(0,0,0,0.4)" stroke-width="0.6" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" /><path d="M12 14c-5 0-8 2.5-8 6v1h16v-1c0-3.5-3-6-8-6z" />
+  </svg>`;
+
+  function movement(rankNum, lastRankNum) {
+    const delta = lastRankNum - rankNum;
+    if (delta === 0) return { cls: "steady", label: "—" };
+    if (delta > 0) return { cls: "up", label: `▲ ${delta}` };
+    return { cls: "down", label: `▼ ${Math.abs(delta)}` };
+  }
+
+  // Split a blurb into whole sentences, for the collapsed-view excerpt.
+  // Guards against the common false sentence-breaks in this copy: mid-
+  // abbreviation ("Jr.", "vs.", "No."), mid-decimal ("5.38 ERA"), and mid-
+  // parenthetical (anything inside "(...)" is never treated as a boundary,
+  // so a parenthetical aside just glues onto whichever sentence it trails).
+  const ABBREVIATIONS = new Set(["jr", "sr", "vs", "no", "st", "mr", "mrs", "dr", "ms"]);
+  function splitSentences(text) {
+    const sentences = [];
+    let start = 0;
+    let depth = 0;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === "(") { depth++; continue; }
+      if (ch === ")") { depth = Math.max(0, depth - 1); continue; }
+      if (depth > 0) continue;
+      if (ch !== "." && ch !== "!" && ch !== "?") continue;
+      const next = text[i + 1];
+      if (next !== undefined && next !== " ") continue;
+      const word = (text.slice(0, i).match(/([A-Za-z]+)$/) || [, ""])[1].toLowerCase();
+      if (ABBREVIATIONS.has(word)) continue;
+      sentences.push(text.slice(start, i + 1).trim());
+      start = i + 1;
+    }
+    const rest = text.slice(start).trim();
+    if (rest) sentences.push(rest);
+    return sentences;
+  }
+
+  // Collapsed-view excerpt: whole sentences, accumulated until there's
+  // roughly 7-8 lines' worth of copy (~340 characters at this card's width
+  // and type size), always stopping right at a period. If the full blurb is
+  // already shorter than that, there's nothing to expand — return it as-is.
+  const EXCERPT_TARGET_CHARS = 130;
+  function excerptFor(text) {
+    const sentences = splitSentences(text);
+    let acc = "";
+    for (const sentence of sentences) {
+      acc = acc ? `${acc} ${sentence}` : sentence;
+      if (acc.length >= EXCERPT_TARGET_CHARS) break;
+    }
+    return acc;
+  }
+
+  const SHARE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3v12" stroke="currentColor" stroke-width="2.6" /><path d="M12 3v12" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+    <path d="M7 8l5-5 5 5" stroke="currentColor" stroke-width="2.6" /><path d="M7 8l5-5 5 5" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2.6" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+  </svg>`;
+
+  // Not a real <a> — a share <button> lives inside this card, and nesting an
+  // interactive control inside a link isn't valid HTML, so the card itself
+  // is a plain container rather than the tap target.
+  function cardHTML(t, index) {
+    const textColor = t.textColor || "#FFFFFF";
+    const m = movement(t.rankNum, t.lastRankNum);
+    const excerpt = excerptFor(t.blurb);
+    const hasMore = excerpt.length < t.blurb.length;
+    const blurbHTML = hasMore
+      ? `<span class="rank-blurb-excerpt">${excerpt} <button type="button" class="rank-more-btn" data-index="${index}">more</button></span>
+         <span class="rank-blurb-full" hidden>${t.blurb} <button type="button" class="rank-less-btn" data-index="${index}">less</button></span>`
+      : t.blurb;
+    return `
+      <article class="rank-card" style="--card-accent:${t.color}" aria-label="${t.team}, ranked ${t.rank}">
+        <span class="rank-corner">
+          <span class="rank-corner-value${String(t.rank).length > 2 ? " is-tied" : ""}">${t.rank}</span>
+        </span>
+        <div class="rank-card-top" style="background:${t.color}; color:${textColor}">
+          <div class="rank-name-block">
+            <h3 class="rank-team-name">${t.team}</h3>
+            <span class="rank-subtitle">No. ${t.rank} overall</span>
+          </div>
+          <span class="rank-movement ${m.cls}">${m.label}</span>
+        </div>
+        <div class="rank-card-bottom">
+          <div class="rank-stats-block">
+            <span class="rank-icon-circle">
+              <img src="${teamLogoURL(t.teamId, 200)}" alt="${t.team} logo" width="72" height="72" loading="lazy">
+              <button type="button" class="rank-follow-btn" data-index="${index}" aria-pressed="false" aria-label="Follow the ${t.team}">+</button>
+            </span>
+            <div class="rank-stats-text">
+              <span class="rank-stats-title">Season Stats</span>
+              <div class="rank-stats-cols">
+                <div class="rank-stat">
+                  <span class="rank-stat-value">${t.record}</span>
+                  <span class="rank-stat-label">Record</span>
+                </div>
+                <div class="rank-stat">
+                  <span class="rank-stat-value">${t.avg}</span>
+                  <span class="rank-stat-label">Avg. rank</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rank-divider"></div>
+          <p class="rank-blurb">${blurbHTML}</p>
+          <p class="rank-byline">
+            <img class="rank-byline-photo" src="${AUTHOR_PHOTOS[t.author]}" alt="" width="20" height="20" loading="lazy">
+            ${t.author}
+          </p>
+          <div class="rank-spotlight-row">
+            <div class="rank-spotlight-left">
+              <span class="rank-player-avatar" style="background:${t.color}; color:${textColor}">
+                ${SILHOUETTE_ICON}
+                ${t.photoId ? `<img class="rank-player-photo" src="${playerPhotoURL(t.photoId)}" alt="${t.spotlightValue}" loading="lazy" onerror="this.style.display='none'">` : ""}
+              </span>
+              <div class="rank-spotlight-text">
+                <span class="rank-spotlight-label">${SPOTLIGHT_LABEL}</span>
+                <span class="rank-spotlight-value">${t.spotlightValue}</span>
+              </div>
+            </div>
+            <button type="button" class="rank-share-btn" data-index="${index}" aria-label="Share ${t.team}'s power ranking card">
+              ${SHARE_ICON}
+            </button>
+          </div>
+        </div>
+      </article>`;
+  }
+
+  // Tighter single-card list view — same data, one row per team.
+  function listRowHTML(t) {
+    const m = movement(t.rankNum, t.lastRankNum);
+    return `
+      <div class="rankings-list-row">
+        <span class="rlr-rank">${t.rank}</span>
+        <span class="rlr-chg ${m.cls}">${m.label}</span>
+        <span class="rlr-team">
+          <img class="rlr-team-logo" src="${teamLogoURL(t.teamId, 72)}" alt="" width="18" height="18" loading="lazy">
+          <span class="rlr-team-name">${t.team}</span>
+        </span>
+        <span class="rlr-record">${t.record}</span>
+        <span class="rlr-avg">${t.avg}</span>
+      </div>`;
+  }
+
+  const track = document.getElementById("rankingsTrack");
+  track.innerHTML = TEAMS.map((t, i) => cardHTML(t, i)).join("");
+  document.getElementById("rankingsListRows").innerHTML = TEAMS.map(listRowHTML).join("");
+
+  // --- Card view / list view toggle ---------------------------------------
+  const cardsRow = document.getElementById("rankingsRow");
+  const listView = document.getElementById("rankingsList");
+  const swipeHint = document.getElementById("rankSwipeHint");
+  const cardsBtn = document.getElementById("viewToggleCards");
+  const listBtn = document.getElementById("viewToggleList");
+
+  function setView(view) {
+    const isList = view === "list";
+    listView.hidden = !isList;
+    cardsRow.hidden = isList;
+    swipeHint.hidden = isList;
+    document.getElementById("rankCounter").hidden = isList;
+    cardsBtn.classList.toggle("active", !isList);
+    listBtn.classList.toggle("active", isList);
+    cardsBtn.setAttribute("aria-pressed", String(!isList));
+    listBtn.setAttribute("aria-pressed", String(isList));
+  }
+  cardsBtn.addEventListener("click", () => setView("cards"));
+  listBtn.addEventListener("click", () => setView("list"));
+
+  // --- Share button: native share sheet where available, else a copyable
+  // fallback message. Delegated so one listener covers all 30 cards.
+  track.addEventListener("click", (e) => {
+    const btn = e.target.closest(".rank-share-btn");
+    if (!btn) return;
+    const t = TEAMS[Number(btn.dataset.index)];
+    const shareData = {
+      title: "MLB Power Rankings",
+      text: `${t.team} — No. ${t.rank} in this week's MLB Power Rankings.`,
+      url: location.href,
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else {
+      alert(`Share "${t.team}" via Messages, social media, or copy link:\n${shareData.text}`);
+    }
+  });
+
+  // --- "more" / "less": swap which span inside .rank-blurb is visible.
+  // When expanding, capture the card's current pixel height as min-height
+  // so it never looks shorter than its normal collapsed size; then switch
+  // to height:auto so the card grows as tall as the full blurb needs.
+  track.addEventListener("click", (e) => {
+    const toggleBtn = e.target.closest(".rank-more-btn, .rank-less-btn");
+    if (!toggleBtn) return;
+    const blurb = toggleBtn.closest(".rank-blurb");
+    const card = toggleBtn.closest(".rank-card");
+    const expanding = toggleBtn.classList.contains("rank-more-btn");
+    if (expanding) {
+      card.style.minHeight = card.getBoundingClientRect().height + "px";
+    }
+    blurb.querySelector(".rank-blurb-excerpt").hidden = expanding;
+    blurb.querySelector(".rank-blurb-full").hidden = !expanding;
+    card.classList.toggle("is-expanded", expanding);
+    if (!expanding) {
+      card.style.minHeight = "";
+    }
+  });
+
+  // --- Follow: one click to follow/unfollow the team, right from the card.
+  track.addEventListener("click", (e) => {
+    const followBtn = e.target.closest(".rank-follow-btn");
+    if (!followBtn) return;
+    const t = TEAMS[Number(followBtn.dataset.index)];
+    const nowFollowing = !followBtn.classList.contains("is-following");
+    followBtn.classList.toggle("is-following", nowFollowing);
+    followBtn.textContent = nowFollowing ? "✓" : "+";
+    followBtn.setAttribute("aria-pressed", String(nowFollowing));
+    followBtn.setAttribute("aria-label", `${nowFollowing ? "Unfollow" : "Follow"} the ${t.team}`);
+  });
+
+  // --- Edge fades + "N / 30" position counter, synced to scroll --------
+  const row = document.getElementById("rankingsRow");
+  const counter = document.getElementById("rankCounter");
+
+  function getStep() {
+    const firstCard = track.querySelector(".rank-card");
+    if (!firstCard) return 1;
+    const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
+    return firstCard.getBoundingClientRect().width + gap;
+  }
+
+  function onScroll() {
+    const atStart = track.scrollLeft <= 4;
+    const atEnd = track.scrollLeft >= track.scrollWidth - track.clientWidth - 4;
+    row.classList.toggle("is-scrolled", !atStart);
+    row.classList.toggle("is-at-end", atEnd);
+
+    const step = getStep();
+    const index = Math.min(
+      TEAMS.length - 1,
+      Math.max(0, Math.round(track.scrollLeft / step))
+    );
+    counter.textContent = `${index + 1} / ${TEAMS.length}`;
+  }
+
+  track.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  onScroll();
+
+  // --- "My Power Rankings": drag-to-reorder tool --------------------------
+  const GRIP_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+    <line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="6" x2="16" y2="6" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="12" x2="16" y2="12" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+    <line x1="8" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="18" x2="16" y2="18" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+  </svg>`;
+
+  const MYRANK_STORAGE_KEY = "myPowerRankingsOrder";
+
+  // Order is stored as an array of indices into TEAMS. Falls back to the
+  // panel's own order if nothing's saved yet, or if a saved value doesn't
+  // match the current 30-team dataset (e.g. after an edit to TEAMS).
+  function loadMyRankOrder() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MYRANK_STORAGE_KEY) || "null");
+      if (Array.isArray(saved) && saved.length === TEAMS.length && saved.every((i) => Number.isInteger(i) && i >= 0 && i < TEAMS.length)) {
+        return saved;
+      }
+    } catch (e) {}
+    return TEAMS.map((_, i) => i);
+  }
+
+  let myRankOrder = loadMyRankOrder();
+  const myRankList = document.getElementById("myRankList");
+  const myRankOverlay = document.getElementById("myRankOverlay");
+  const myRankShareBtn = document.getElementById("myRankShare");
+  const myRankSavedNote = document.getElementById("myRankSavedNote");
+  const myRankResetBtn = document.getElementById("myRankReset");
+  const myRankFloatingActions = document.getElementById("myRankFloatingActions");
+
+  // No Save button — reordering auto-saves. The "Saved" note is debounced:
+  // it hides the instant a change is made and only reappears once the user
+  // pauses for a beat, so it reads as "saved" rather than flickering on
+  // every single row swap mid-drag.
+  const SAVE_DEBOUNCE_MS = 800;
+  let mySaveTimer = null;
+
+  function scheduleAutoSave() {
+    myRankSavedNote.hidden = true;
+    if (mySaveTimer) clearTimeout(mySaveTimer);
+    mySaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(MYRANK_STORAGE_KEY, JSON.stringify(myRankOrder));
+      } catch (e) {}
+      myRankSavedNote.hidden = false;
+      mySaveTimer = null;
+    }, SAVE_DEBOUNCE_MS);
+  }
+  function cancelPendingSave() {
+    if (mySaveTimer) {
+      clearTimeout(mySaveTimer);
+      mySaveTimer = null;
+    }
+    myRankSavedNote.hidden = true;
+  }
+
+  function myRankRowHTML(teamIndex, position) {
+    const t = TEAMS[teamIndex];
+    return `
+      <div class="myrank-row" data-team-index="${teamIndex}">
+        <span class="myrank-handle" aria-label="Drag ${t.team} to reorder">${GRIP_ICON}</span>
+        <span class="myrank-rank">${position + 1}</span>
+        <img class="myrank-logo" src="${teamLogoURL(t.teamId, 72)}" alt="" width="24" height="24" loading="lazy">
+        <span class="myrank-name">${t.team}</span>
+      </div>`;
+  }
+
+  function renderMyRankRows() {
+    myRankList.innerHTML = myRankOrder.map((teamIndex, position) => myRankRowHTML(teamIndex, position)).join("");
+  }
+
+  // Re-derive the order array from actual DOM order after a drag, and
+  // refresh the visible rank numbers to match.
+  function syncMyRankOrderFromDOM() {
+    const rows = myRankList.querySelectorAll(".myrank-row");
+    myRankOrder = Array.from(rows).map((row) => Number(row.dataset.teamIndex));
+    rows.forEach((row, i) => {
+      row.querySelector(".myrank-rank").textContent = i + 1;
+    });
+    scheduleAutoSave();
+  }
+
+  // Drag reorder via Pointer Events (covers mouse + touch in one code path).
+  // The dragged row is moved in the DOM as soon as the pointer crosses a
+  // neighboring row's midpoint, rather than trying to animate it under the
+  // finger — simpler and more robust than a full floating-drag simulation.
+  let dragRow = null;
+
+  function onDragPointerMove(e) {
+    if (!dragRow) return;
+    const rows = Array.from(myRankList.querySelectorAll(".myrank-row"));
+    const y = e.clientY;
+    for (const row of rows) {
+      if (row === dragRow) continue;
+      const rect = row.getBoundingClientRect();
+      if (y < rect.top + rect.height / 2) {
+        if (row.previousElementSibling !== dragRow) {
+          myRankList.insertBefore(dragRow, row);
+          syncMyRankOrderFromDOM();
+        }
+        return;
+      }
+    }
+    if (myRankList.lastElementChild !== dragRow) {
+      myRankList.appendChild(dragRow);
+      syncMyRankOrderFromDOM();
+    }
+  }
+
+  function onDragPointerUp() {
+    if (dragRow) dragRow.classList.remove("is-dragging");
+    dragRow = null;
+    window.removeEventListener("pointermove", onDragPointerMove);
+    window.removeEventListener("pointerup", onDragPointerUp);
+  }
+
+  myRankList.addEventListener("pointerdown", (e) => {
+    const row = e.target.closest(".myrank-row");
+    if (!row) return;
+    e.preventDefault();
+    dragRow = row;
+    dragRow.classList.add("is-dragging");
+    // Reset/Save only appear once the user actually starts trying to
+    // reorder — an untouched list has nothing to save yet.
+    myRankFloatingActions.hidden = false;
+    window.addEventListener("pointermove", onDragPointerMove);
+    window.addEventListener("pointerup", onDragPointerUp);
+  });
+
+  // --- Open / close the modal ---------------------------------------------
+  function openMyRankModal() {
+    myRankOrder = loadMyRankOrder();
+    renderMyRankRows();
+    myRankFloatingActions.hidden = true;
+    cancelPendingSave();
+    myRankOverlay.hidden = false;
+  }
+  function closeMyRankModal() {
+    myRankOverlay.hidden = true;
+  }
+
+  // --- Reset: back to The Athletic's own panel order, if starting over ---
+  // A visual reset only — it doesn't persist, so it won't clobber a
+  // previously-saved list until the user actually drags something again.
+  myRankResetBtn.addEventListener("click", () => {
+    myRankOrder = TEAMS.map((_, i) => i);
+    renderMyRankRows();
+    cancelPendingSave();
+  });
+
+  document.getElementById("openMyRankings").addEventListener("click", (e) => {
+    e.preventDefault();
+    openMyRankModal();
+  });
+  document.getElementById("myRankClose").addEventListener("click", closeMyRankModal);
+  myRankOverlay.addEventListener("click", (e) => {
+    if (e.target === myRankOverlay) closeMyRankModal();
+  });
+
+  // --- Share: generate a static shareable graphic via Canvas 2D API -------
+  // Team logos are downloaded locally to Assets/team-logos/ (same-origin)
+  // specifically so they can be drawn onto the canvas — the CDN used
+  // elsewhere in this file (static01.nyt.com) doesn't send an
+  // Access-Control-Allow-Origin header, which would taint the canvas and
+  // block the toBlob() call that Save Image/Copy/Share all depend on.
+  function teamLogoLocalURL(teamId) {
+    return `Assets/team-logos/${teamId}.png`;
+  }
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function generateShareGraphic(limit) {
+    await document.fonts.ready;
+
+    const order = limit ? myRankOrder.slice(0, limit) : myRankOrder;
+    const logos = await Promise.all(
+      order.map((teamIndex) => loadImage(teamLogoLocalURL(TEAMS[teamIndex].teamId)))
+    );
+    const W = 1080, rowH = 80, headerH = 0, footerH = 80;
+    const H = headerH + order.length * rowH + footerH;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.textBaseline = "alphabetic";
+
+    // Background — no header strip; the share sheet above already carries
+    // the "My MLB Power Rankings" / "Powered by The Athletic" title.
+    ctx.fillStyle = "#121212";
+    ctx.fillRect(0, 0, W, H);
+
+    // Rows
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    order.forEach((teamIndex, i) => {
+      const t = TEAMS[teamIndex];
+      const y = headerH + i * rowH;
+
+      ctx.fillStyle = i % 2 === 0 ? "#171717" : "#121212";
+      ctx.fillRect(0, y, W, rowH);
+
+      // Rank number
+      ctx.fillStyle = "#F0F0EE";
+      ctx.font = "700 30px 'AthleticSlab', Georgia, serif";
+      ctx.textAlign = "right";
+      ctx.fillText(String(i + 1), 96, y + rowH / 2 + 10);
+      ctx.textAlign = "left";
+
+      // Team logo, clipped to a circle with the team color behind it as a
+      // backdrop (covers any transparent padding baked into the source PNG).
+      const cx = 146, cy = y + rowH / 2, r = 26;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = t.color;
+      ctx.fill();
+      ctx.clip();
+      const logoSize = r * 1.7;
+      ctx.drawImage(logos[i], cx - logoSize / 2, cy - logoSize / 2, logoSize, logoSize);
+      ctx.restore();
+
+      // Team name — Sans Medium instead of Slab Bold for legibility at
+      // this size (AthleticSlab only has a Bold face loaded, so just
+      // lowering the CSS weight number on it wouldn't render lighter).
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "500 26px 'AthleticSans', -apple-system, sans-serif";
+      ctx.fillText(t.team, 190, y + rowH / 2 + 9);
+    });
+
+    // Footer
+    ctx.fillStyle = "#323232";
+    ctx.fillRect(0, H - footerH, W, footerH);
+    ctx.fillStyle = "#969693";
+    ctx.font = "500 18px 'AthleticSans', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("THE ATHLETIC  ·  " + today, W / 2, H - footerH / 2 + 6);
+    ctx.textAlign = "left";
+
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  // --- Share sheet: a custom bottom sheet (modeled on the native iOS share
+  // sheet in reference-rankings/IMG_9743.PNG) that previews the generated
+  // graphic before the user picks how to send it. -------------------------
+  const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3v11" stroke="currentColor" stroke-width="2.4" /><path d="M12 3v11" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+    <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.4" /><path d="M7 10l5 5 5-5" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+    <path d="M5 19h14" stroke="currentColor" stroke-width="2.4" /><path d="M5 19h14" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+  </svg>`;
+  const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" /><rect x="8" y="8" width="12" height="12" rx="2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+  </svg>`;
+  // Destination icons below are generic/monochrome pictograms (chat bubble,
+  // phone-in-bubble, camera) — same treatment as the iOS share sheet's own
+  // gray "activity" row in reference-rankings/IMG_9743.PNG, not the apps'
+  // actual trademarked logos.
+  const MESSAGE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 5.5A2 2 0 0 1 6 3.5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-7l-4 3.5v-3.5H6a2 2 0 0 1-2-2v-10Z" stroke="currentColor" stroke-width="1.8" /><path d="M4 5.5A2 2 0 0 1 6 3.5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-7l-4 3.5v-3.5H6a2 2 0 0 1-2-2v-10Z" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+  </svg>`;
+  const WHATSAPP_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.2-1.1A8.5 8.5 0 1 0 12 3.5Z" stroke="currentColor" stroke-width="1.8" /><path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.2-1.1A8.5 8.5 0 1 0 12 3.5Z" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <path d="M8.8 8.4c.3-.6 1-.5 1.4.1.4.6.7 1.1.3 1.7-.5.7-1 .5-.6 1.3.5 1 1.5 2 2.5 2.4.7.3.6-.3 1.2-.7.6-.4 1 0 1.6.4.5.4.9.6.4 1.3-.6.8-1.9 1-3 .5-1.5-.6-3.3-2.3-4-3.7-.5-.9-.4-2.3.2-3.3Z" fill="currentColor" />
+  </svg>`;
+  const INSTAGRAM_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.8" /><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="12" r="4.2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <circle cx="16.6" cy="7.4" r="1.1" fill="currentColor" />
+  </svg>`;
+  document.getElementById("shareSaveIcon").innerHTML = DOWNLOAD_ICON;
+  document.getElementById("shareCopyIcon").innerHTML = COPY_ICON;
+  document.getElementById("shareMessageIcon").innerHTML = MESSAGE_ICON;
+  document.getElementById("shareWhatsappIcon").innerHTML = WHATSAPP_ICON;
+  document.getElementById("shareInstagramIcon").innerHTML = INSTAGRAM_ICON;
+
+  const shareSheetOverlay = document.getElementById("shareSheetOverlay");
+  const shareSheetClose = document.getElementById("shareSheetClose");
+  const shareSheetPreviewImg = document.getElementById("shareSheetPreviewImg");
+  const shareSheetLoading = document.getElementById("shareSheetLoading");
+  const shareShowAllBtn = document.getElementById("shareShowAll");
+  const shareSaveBtn = document.getElementById("shareSaveBtn");
+  const shareCopyBtn = document.getElementById("shareCopyBtn");
+  const shareMessageBtn = document.getElementById("shareMessageBtn");
+  const shareWhatsappBtn = document.getElementById("shareWhatsappBtn");
+  const shareInstagramBtn = document.getElementById("shareInstagramBtn");
+
+  // Copy depends on browser support, so it's feature-detected like before.
+  // Message/WhatsApp/Instagram stay visible regardless — on a device that
+  // supports the Web Share API they hand the image to that actual app via
+  // the OS share sheet; otherwise they fall back to a plain download, same
+  // as Save Image, so nothing is ever a dead button.
+  if (!(navigator.clipboard && window.ClipboardItem)) shareCopyBtn.hidden = true;
+
+  // The share graphic defaults to the top 10 — long enough to read at a
+  // glance, short enough to actually fit on a phone screen when shared.
+  // The link below it toggles between that and the full list.
+  const SHARE_PREVIEW_LIMIT = 10;
+  let shareSheetBlob = null;
+  let shareSheetPreviewURL = null;
+  let shareShowingAll = false;
+
+  function closeShareSheet() {
+    shareSheetOverlay.hidden = true;
+  }
+
+  async function renderSharePreview(limit) {
+    shareSheetPreviewImg.hidden = true;
+    shareSheetLoading.hidden = false;
+    shareSheetLoading.textContent = "Generating preview…";
+    try {
+      shareSheetBlob = await generateShareGraphic(limit);
+      if (shareSheetPreviewURL) URL.revokeObjectURL(shareSheetPreviewURL);
+      shareSheetPreviewURL = URL.createObjectURL(shareSheetBlob);
+      shareSheetPreviewImg.src = shareSheetPreviewURL;
+      shareSheetLoading.hidden = true;
+      shareSheetPreviewImg.hidden = false;
+    } catch (e) {
+      console.error(e);
+      shareSheetLoading.textContent = "Couldn't generate a preview.";
+    }
+  }
+
+  async function openShareSheet() {
+    shareSheetOverlay.hidden = false;
+    shareSheetBlob = null;
+    shareShowingAll = false;
+    shareShowAllBtn.hidden = myRankOrder.length <= SHARE_PREVIEW_LIMIT;
+    shareShowAllBtn.textContent = `Show all ${myRankOrder.length} teams`;
+    await renderSharePreview(SHARE_PREVIEW_LIMIT);
+  }
+
+  shareShowAllBtn.addEventListener("click", async () => {
+    shareShowingAll = !shareShowingAll;
+    shareShowAllBtn.textContent = shareShowingAll
+      ? "Show top 10 teams"
+      : `Show all ${myRankOrder.length} teams`;
+    await renderSharePreview(shareShowingAll ? null : SHARE_PREVIEW_LIMIT);
+  });
+
+  myRankShareBtn.addEventListener("click", openShareSheet);
+  shareSheetClose.addEventListener("click", closeShareSheet);
+  shareSheetOverlay.addEventListener("click", (e) => {
+    if (e.target === shareSheetOverlay) closeShareSheet();
+  });
+
+  shareCopyBtn.addEventListener("click", async () => {
+    if (!shareSheetBlob) return;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ [shareSheetBlob.type]: shareSheetBlob })]);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  // Message/WhatsApp/Instagram all hand off to the same mechanism: the Web
+  // Share API when the browser supports sharing files (the OS then lets the
+  // user pick that specific app), otherwise a plain download so the button
+  // still does something useful.
+  function downloadShareBlob() {
+    if (!shareSheetBlob) return;
+    const url = URL.createObjectURL(shareSheetBlob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "my-mlb-power-rankings.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function shareToDestination() {
+    if (!shareSheetBlob) return;
+    const file = new File([shareSheetBlob], "my-mlb-power-rankings.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "My MLB Power Rankings" });
+        return;
+      } catch (e) {
+        return; // User cancelled — don't also fall back to a download.
+      }
+    }
+    downloadShareBlob();
+  }
+
+  shareSaveBtn.addEventListener("click", downloadShareBlob);
+  shareMessageBtn.addEventListener("click", shareToDestination);
+  shareWhatsappBtn.addEventListener("click", shareToDestination);
+  shareInstagramBtn.addEventListener("click", shareToDestination);
+</script>
+
+</body>
+</html>
