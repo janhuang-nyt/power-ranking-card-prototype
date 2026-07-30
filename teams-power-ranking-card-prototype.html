@@ -401,6 +401,7 @@
     flex: 0 0 86%;
     aspect-ratio: 5 / 9;
     scroll-snap-align: start;
+    scroll-snap-stop: always;
     border-radius: 18px;
     overflow: hidden;
     background: var(--gray-200);
@@ -473,7 +474,11 @@
      toward center — clipped to the same triangle as .rank-corner, with dark
      edges on either side of the bright band so it reads as light catching a
      metal edge rather than a flat white smear. Position driven by JS
-     (background-position, tied to scroll — see applyCarouselMotion). */
+     (background-position, tied to scroll — see applyCarouselMotion). Peak
+     band opacity is 0.55, not a near-opaque 0.98 — at full opacity the band
+     completely whited-out the rank number (e.g. Kansas City Royals' "30")
+     wherever it swept over it; toning it down keeps the number legible
+     through the sweep instead of hiding it behind the number via z-index. */
   .rank-corner-shine {
     position: absolute;
     inset: 0;
@@ -481,8 +486,8 @@
     background: linear-gradient(115deg,
       transparent 22%,
       rgba(0, 0, 0, 0.1) 36%,
-      rgba(255, 255, 255, 0.98) 48%,
-      rgba(255, 255, 255, 0.98) 54%,
+      rgba(255, 255, 255, 0.55) 48%,
+      rgba(255, 255, 255, 0.55) 54%,
       rgba(0, 0, 0, 0.1) 64%,
       transparent 78%);
     background-size: 260% 260%;
@@ -1370,7 +1375,7 @@
 
 <script>
   // ---- Single source of truth for the carousel's data --------------------
-  // Field notes (see reference-rankings/design-style.md, "Data model implied
+  // Field notes (see ../design-style.md, "Data model implied
   // by the editorial format"):
   //   rank        — display rank, with "T-" prefix shared by ties
   //   rankNum     — numeric rank used to order the list and compute movement
@@ -1675,7 +1680,12 @@
     const firstCard = track.querySelector(".rank-card");
     if (!firstCard) return 1;
     const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
-    return firstCard.getBoundingClientRect().width + gap;
+    // offsetWidth, not getBoundingClientRect().width — the latter reflects
+    // applyCarouselMotion's cosmetic transform:scale() on non-active cards,
+    // so once card 0 (always the one this measures) scrolls out of focus
+    // and shrinks, every step computed from it undershoots. offsetWidth is
+    // the untransformed layout box, immune to that.
+    return firstCard.offsetWidth + gap;
   }
 
   function onScroll() {
@@ -1754,6 +1764,31 @@
     track.addEventListener("scroll", scheduleApplyCarouselMotion, { passive: true });
     window.addEventListener("resize", scheduleApplyCarouselMotion);
     applyCarouselMotion();
+
+    // --- Scroll-snap settle correction -------------------------------------
+    // CSS scroll-snap-type alone lands reliably on desktop (mouse-wheel/
+    // trackpad scrolling), but on mobile Safari/Chrome a touch-fling can
+    // leave the track dozens of pixels short of the true snap point — partly
+    // because applyCarouselMotion() above mutates transform/opacity/box-shadow
+    // on every card on every scroll frame, and that per-frame main-thread
+    // work is enough to throw off mobile WebKit's native fling+snap physics,
+    // even though it's invisible on desktop. Rather than trust the browser to
+    // land exactly on a card, explicitly correct to the nearest one a moment
+    // after scrolling stops. On desktop, where the browser already landed
+    // correctly, this is a no-op (the 1px threshold below never fires).
+    let settleTimer = null;
+    function scheduleSettle() {
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        const step = getStep();
+        const index = Math.min(TEAMS.length - 1, Math.max(0, Math.round(track.scrollLeft / step)));
+        const target = index * step;
+        if (Math.abs(track.scrollLeft - target) > 1) {
+          track.scrollTo({ left: target, behavior: reduceMotion ? "auto" : "smooth" });
+        }
+      }, 120);
+    }
+    track.addEventListener("scroll", scheduleSettle, { passive: true });
   })();
 
   // --- "My Power Rankings": drag-to-reorder tool --------------------------

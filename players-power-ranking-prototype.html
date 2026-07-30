@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Player Power Ranking Prototype — NFL QB Tiers Carousel</title>
+
+<style>
+  /* --- Fonts (Athletic Sans/Serif/Slab superfamily, see Assets/Fonts) ----
+     Same family set as teams-power-ranking-card-prototype.html — only the
+     weights actually used below are loaded. See design-style.md's
+     Typography section for the current --font-* mapping. */
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Regular.otf") format("opentype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Medium.otf") format("opentype");
+    font-weight: 500; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Bold.otf") format("opentype");
+    font-weight: 600 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSans";
+    src: url("Assets/Fonts/AthleticSans/AthleticSans-Black.otf") format("opentype");
+    font-weight: 800 900; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSerif";
+    src: url("Assets/Fonts/AthleticSerif/AthleticSerif-Regular.otf") format("opentype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSerifPoster";
+    src: url("Assets/Fonts/AthleticSerifPoster/AthleticSerifPoster-Bold.otf") format("opentype");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "AthleticSlab";
+    src: url("Assets/Fonts/AthleticSlab/AthleticSlab-Bold.otf") format("opentype");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+
+  :root {
+    /* Chalk dark-mode grayscale (this module lives on the dark iOS home feed) */
+    --gray-100: #000000;
+    --gray-200: #121212;
+    --gray-300: #323232;
+    --gray-400: #52524F;
+    --gray-500: #969693;
+    --gray-600: #C4C4C0;
+    --gray-700: #F0F0EE;
+    --gray-800: #FFFFFF;
+
+    --bright-green: #2ECC58;
+    --bright-red: #FF3B30;
+
+    --font-slab: "AthleticSerifPoster", Georgia, "Times New Roman", serif;
+    --font-slab-bold: "AthleticSlab", Georgia, "Times New Roman", serif;
+    --font-franklin: "AthleticSans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --font-imperial: "AthleticSerif", Georgia, "Times New Roman", Times, serif;
+
+    --canvas-bg: #3D3D3D;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--canvas-bg);
+    font-family: var(--font-franklin);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .device {
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--gray-200);
+    min-height: 100vh;
+  }
+
+  /* --- Minimal home-feed chrome, just enough to place the module in context */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .masthead {
+    padding: 4px 16px 14px;
+    color: var(--gray-800);
+    font-family: var(--font-slab);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .feed-filler {
+    padding: 18px 16px;
+    color: var(--gray-500);
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .feed-filler-row {
+    height: 64px;
+    border-radius: 10px;
+    background: var(--gray-300);
+    margin: 0 16px 10px;
+    opacity: 0.5;
+  }
+
+  /* ============ Player Power Rankings module ============ */
+  .rankings-module { padding: 20px 0 28px; }
+
+  .rankings-header { padding: 0 16px; margin-bottom: 10px; }
+  .rankings-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px 5px 8px;
+    border: 1.5px solid var(--gray-500);
+    border-radius: 999px;
+  }
+  .rankings-pill-icon { display: block; height: 20px; width: 20px; object-fit: contain; }
+  .rankings-pill-label {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--gray-800);
+  }
+  .rankings-title {
+    margin: 0;
+    padding: 0 16px;
+    font-family: var(--font-slab);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--gray-800);
+  }
+  .rankings-dek {
+    margin: 6px 0 2px;
+    padding: 0 16px;
+    font-family: var(--font-imperial);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+  /* Byline for the whole module — the "QB Tiers" franchise is one
+     credited author, not rotating authors, so this lives once at the
+     page/header level rather than repeated on all 34 cards. */
+  .rankings-byline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 2px;
+    padding: 0 16px;
+  }
+  .rankings-byline-photo {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: grayscale(100%);
+  }
+  .rankings-byline-text {
+    font-family: var(--font-imperial);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--gray-600);
+  }
+  .rankings-byline-text strong { font-style: normal; font-weight: 600; color: var(--gray-700); }
+
+  .rankings-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    margin: 10px 0 12px;
+  }
+  .rankings-swipe-hint {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--gray-500);
+  }
+  .rankings-counter {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: var(--gray-700);
+    background: var(--gray-300);
+    border-radius: 20px;
+    padding: 4px 10px;
+    min-width: 46px;
+    text-align: center;
+  }
+  .rankings-meta-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .view-toggle { display: flex; gap: 2px; background: var(--gray-300); border-radius: 16px; padding: 2px; }
+  .view-toggle-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 22px;
+    border: none; border-radius: 14px;
+    background: transparent; color: var(--gray-500);
+    cursor: pointer;
+  }
+  .view-toggle-btn.active { background: var(--gray-700); color: var(--gray-100); }
+
+  /* --- Compact single-column list view -------------------------------- */
+  .rankings-list {
+    margin: 0 16px 12px;
+    background: var(--gray-200);
+    border: 1px solid var(--gray-300);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .rankings-list-titlebar {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 16px 14px 14px;
+    border-bottom: 1px solid var(--gray-300);
+  }
+  .rankings-list-wordmark { height: 9px; width: auto; }
+  .rankings-list-title {
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.2px;
+    color: var(--gray-800);
+  }
+  .rankings-list-byline { font-family: var(--font-imperial); font-style: italic; font-size: 11.5px; color: var(--gray-500); }
+  .rankings-list-header,
+  .rankings-list-row {
+    display: grid;
+    grid-template-columns: 40px 34px 1fr 46px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  /* Floating share button for the whole list. position:sticky turned out
+     to be the wrong tool here — sticky's `bottom` offset is built for
+     something anchored at the *end* of a scrolling container (it catches
+     as you approach the container's bottom edge), not for "stay near the
+     viewport's bottom edge for as long as any part of this tall section
+     is on screen." What that actually needs is position:fixed (relative
+     to the viewport, not the list), shown/hidden by JS based on whether
+     #rankingsList currently intersects the viewport (see the
+     IntersectionObserver below) — real "stays visible while relevant,
+     gone once you scroll past it" behavior, just not implemented via the
+     sticky property. The `right` offset accounts for the .device mock
+     phone frame being centered with max-width:430px: on a viewport
+     narrower than that (real phones) it's flush at 12px from the edge;
+     on a wider desktop preview it's still 12px in from the *frame's*
+     right edge, not the browser window's, via max(). */
+  .rankings-list-share-btn {
+    position: fixed;
+    bottom: 20px;
+    right: max(12px, calc(50vw - 215px + 12px));
+    z-index: 20;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    color: var(--gray-800);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -6px 10px rgba(255, 255, 255, 0.05), 0 4px 14px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: background 0.15s ease, opacity 0.2s ease;
+  }
+  .rankings-list-share-btn.is-visible { opacity: 1; pointer-events: auto; }
+  .rankings-list-share-btn:hover { background: rgba(255, 255, 255, 0.24); }
+  .rankings-list-share-btn:active { background: rgba(255, 255, 255, 0.32); }
+  .rankings-list-header {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--gray-500);
+  }
+  .rankings-list-header span:last-child { text-align: right; }
+  .rankings-list-row { border-top: 1px solid var(--gray-300); }
+  .rlr-rank { font-family: var(--font-franklin); font-weight: 700; font-size: 17px; color: var(--gray-800); }
+  .rlr-chg {
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .rlr-chg.up { color: var(--bright-green); }
+  .rlr-chg.down { color: var(--bright-red); }
+  .rlr-chg.steady { color: var(--gray-500); }
+  .rlr-chg.new { color: var(--gray-700); }
+  .rlr-player {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rlr-player-photo {
+    flex: 0 0 26px;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--gray-300);
+  }
+  .rlr-player-text { min-width: 0; }
+  .rlr-name {
+    display: block;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gray-800);
+  }
+  .rlr-team {
+    display: block;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--gray-500);
+  }
+  .rlr-tier {
+    text-align: right;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* --- Carousel track ---------------------------------------------------- */
+  .rankings-row { position: relative; }
+  .rankings-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 2px 16px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline-start: 16px;
+    scrollbar-width: none;
+  }
+  .rankings-track::-webkit-scrollbar { display: none; }
+  .rankings-row::before,
+  .rankings-row::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.18s ease-out;
+  }
+  .rankings-row::before { left: 0; background: linear-gradient(to right, var(--gray-200), transparent); opacity: 0; }
+  .rankings-row::after { right: 0; background: linear-gradient(to left, var(--gray-200), transparent); opacity: 1; }
+  .rankings-row.is-scrolled::before { opacity: 1; }
+  .rankings-row.is-at-end::after { opacity: 0; }
+
+  /* --- Card frame: trading-card border, modeled on the diagonal foil-stripe
+     border + solid accent mat of a Donruss Optic card (see
+     reference-rankings/nfl_trading_card.jpg). Three nested layers, each
+     radius stepping down from the last (concentricity, per this project's
+     own Liquid Glass "Harmony" principle in design-style.md):
+       .rank-card  — outer, diagonal accent/parchment stripe, 18px radius
+       .pcard-mat  — solid team-color ring, 13px radius
+       .pcard-shell — actual card content + clipping, 11px radius
+     aspect-ratio/scroll-snap live on .rank-card since that's what the
+     carousel's depth-motion math (applyCarouselMotion) reads from. */
+  .rank-card {
+    position: relative;
+    flex: 0 0 86%;
+    aspect-ratio: 5 / 9;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    border-radius: 18px;
+    padding: 7px;
+    background: repeating-linear-gradient(
+      135deg,
+      #F4EFE1 0px 6px,
+      var(--card-accent, var(--gray-300)) 6px 7px,
+      #F4EFE1 7px 13px,
+      var(--gray-400) 13px 14px
+    );
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+    text-decoration: none;
+  }
+  @media (min-width: 431px) {
+    .rank-card { aspect-ratio: 5 / 7.8; }
+  }
+  .pcard-mat {
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 13px;
+    padding: 3px;
+    background: var(--card-accent, var(--gray-300));
+  }
+  .pcard-shell {
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 11px;
+    overflow: hidden;
+    background: var(--gray-200);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Tier pill — small, colored per tier */
+  .tier-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: #06210F;
+  }
+  /* Metallic gradient fills, shared by every .tier-pill usage (this base
+     rule as well as the larger shield badge in the photo zone below) so
+     the collapsed list view's tier pill matches the expanded card's shield
+     colors exactly — gold/silver/bronze for the medal tiers, the same
+     purple/deep-red metal for tiers 4-5. Each is a plain light-corner-to-
+     dark-corner diagonal (not a light-dark-light sweep) so "light side"
+     and "dark side" are two fixed, unambiguous corners of the shield —
+     the separate .shield-shine overlay below wipes between them. Fill
+     itself never animates or shifts position, so the base color always
+     reads correctly against every team background instead of briefly
+     landing on an odd transitional tone mid-sweep. */
+  .tier-pill.tier-1 {
+    background-image: linear-gradient(135deg, #F3CB5C 0%, #B8860B 55%, #6B4900 100%);
+    color: #3D2B00;
+  }
+  .tier-pill.tier-2 {
+    background-image: linear-gradient(135deg, #F2F2F2 0%, #A9A9A9 55%, #5E5E5E 100%);
+    color: #2B2B2B;
+  }
+  .tier-pill.tier-3 {
+    background-image: linear-gradient(135deg, #DE9F55 0%, #A85D22 55%, #5C300E 100%);
+    color: #3A1D06;
+  }
+  .tier-pill.tier-4 {
+    background-image: linear-gradient(135deg, #B79EF0 0%, #7C5CC9 55%, #432D80 100%);
+    color: #241249;
+  }
+  /* Deliberately a muted brick-red-to-near-black metal, not a bright red —
+     a bright light end was blending into red/orange team photo-zone
+     backgrounds (e.g. Browns). Keeping both ends darker than the other
+     tiers guarantees contrast by value against any team color, not just
+     hue, without needing a rim border (which read as a gray smudge once
+     clipped to the shield's hexagon shape — see .shield-shine below). */
+  .tier-pill.tier-5 {
+    background-image: linear-gradient(135deg, #8B3A3A 0%, #5C1414 55%, #230505 100%);
+    color: #FFEAE6;
+  }
+
+  .pcard-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .pcard-change.up { color: var(--bright-green); }
+  .pcard-change.down { color: var(--bright-red); }
+  .pcard-change.steady { color: var(--gray-500); }
+  .pcard-change.new { color: var(--gray-700); }
+
+  /* Extra top margin (well beyond the .pcard-body flex gap) so the blurb
+     starts safely below the card's visible fold instead of its first line
+     or two peeking in as a half-legible teaser — it should only appear
+     once the user actually scrolls or taps the down arrow. */
+  .pcard-blurb {
+    margin: 46px 0 0;
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+  /* Down arrow — a bare icon, no chip/button chrome, same "bare arrow, no
+     pill" convention design-style.md documents for movement indicators.
+     Lives inline inside .pcard-quote, right after the quote text, rather
+     than on its own row — that way it always sits on whichever line the
+     quote text itself ends on, one line or two, instead of getting pushed
+     onto a fixed row below that a 2-line quote can shove past the card's
+     visible edge. Not floating over the card, so it can never overlap the
+     share button, which is the one that now floats/stays sticky (see
+     .pcard-share-btn below). Scrolling the body naturally carries it out
+     of view once the user scrolls past it — see the simplified
+     updateDownArrow(), which only needs to hide it up front when there's
+     nothing to reveal at all. */
+  .pcard-down-arrow {
+    display: inline-flex;
+    vertical-align: -3px;
+    margin-left: 5px;
+    color: rgba(255, 255, 255, 0.85);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+  .pcard-down-arrow:active { opacity: 0.6; }
+  .pcard-down-arrow.is-hidden { opacity: 0; pointer-events: none; }
+
+  /* Share icon button — Liquid Glass, light/near-clear, same recipe as
+     .rank-share-btn in teams-power-ranking-card-prototype.html. Absolutely
+     positioned as a sibling of .pcard-shell (not a descendant), so
+     pcard-body's own scrolling never carries it out of view or clips it —
+     "fully in view, overlaid and sticky" regardless of blurb length or
+     scroll position. */
+  .pcard-share-btn {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    z-index: 3;
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    color: var(--gray-800);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -6px 10px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .pcard-share-btn:hover { background: rgba(255, 255, 255, 0.22); }
+  .pcard-share-btn:active { background: rgba(255, 255, 255, 0.3); }
+
+  .pcard-fact-line {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--gray-500);
+  }
+
+  /* =====================================================================
+     Card face — "Spotlight" (design-style.md format 2 lineage): tonal
+     color-blocked hero photo up top, darker tonal panel below.
+     ===================================================================== */
+  .pcard-photo-zone {
+    position: relative;
+    flex: 0 0 60%;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    padding-top: 14px;
+  }
+  /* Tier badge, in the photo zone — a shield, not a generic pill, so tier
+     reads as a rank medal (design-style.md's own athletic-card lineage).
+     Colors come entirely from the shared .tier-pill.tier-N rules above
+     (that's what keeps the collapsed list view's pill matching this
+     shield exactly) — this block only adds the shield's shape/size/
+     position. The fill itself is static; the shine-on-swipe motion lives
+     entirely in the separate .shield-shine overlay below so the shield's
+     actual color never shifts mid-animation. */
+  .pcard-photo-zone .tier-pill {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    box-sizing: border-box;
+    width: 56px;
+    height: 66px;
+    padding: 15px 0 0;
+    clip-path: polygon(50% 0%, 100% 14%, 100% 58%, 50% 100%, 0% 58%, 0% 14%);
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  }
+  /* Shine-on-swipe overlay — a mostly-transparent diagonal streak, same
+     "bright band with dark edges" technique as .rank-corner-shine in
+     teams-power-ranking-card-prototype.html, layered on top of the
+     shield's own static fill rather than baked into it. That keeps the
+     shield's actual tier color constant throughout the motion (nothing to
+     look "off" against any given team background) while still wiping a
+     highlight across it once. The sweep animates `transform: translate()`,
+     not `background-position` — WebKit intermittently fails to keep a
+     `clip-path` mask in sync with an element whose *background* is
+     animating underneath it (confirmed in real WebKit: the shine's
+     corners briefly leaked outside the shield's hexagon mid-sweep, not
+     reproducible in Chromium, not present in static frames — a live-
+     animation-only compositing glitch). `transform` is compositor-only and
+     doesn't touch paint, so the parent .tier-pill's clip-path — itself
+     never animated — stays stable throughout. Sized larger than the
+     shield and translated from fully off top-left ("light" corner, per
+     the tier gradients' own 135deg direction above) to fully off bottom-
+     right ("dark" corner) so it plays once on swipe-in and settles back to
+     invisible rather than looping or leaving a visible residue. */
+  .shield-shine {
+    position: absolute;
+    z-index: 0;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: linear-gradient(
+      115deg,
+      transparent 30%,
+      rgba(0, 0, 0, 0.12) 42%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(255, 255, 255, 0.95) 56%,
+      rgba(0, 0, 0, 0.12) 68%,
+      transparent 80%
+    );
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    transform: translate(-60px, -60px);
+    pointer-events: none;
+  }
+  @keyframes shieldShine {
+    0% { transform: translate(-60px, -60px); }
+    100% { transform: translate(60px, 60px); }
+  }
+  .rank-card.is-active .pcard-photo-zone .shield-shine {
+    animation: shieldShine 2s ease-out 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rank-card.is-active .pcard-photo-zone .shield-shine { animation: none; }
+  }
+  /* position:relative + z-index so these paint above .shield-shine —
+     absolutely positioned descendants (like the overlay) paint after
+     plain in-flow content by default regardless of DOM order, so without
+     this the shine would wash out the text it sweeps behind. */
+  .pcard-tier-badge-label {
+    position: relative;
+    z-index: 1;
+    font-size: 8.5px;
+    letter-spacing: 0.5px;
+  }
+  .pcard-tier-badge-value {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-slab-bold);
+    font-size: 27px;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .pcard-photo {
+    width: 104%;
+    height: auto;
+    display: block;
+  }
+  .pcard-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pcard-name-row { display: flex; align-items: center; gap: 8px; }
+  .pcard-name {
+    margin: 0;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1.15;
+    color: var(--gray-800);
+  }
+  /* Follow button — Liquid Glass, light/near-clear, same recipe as
+     .rank-follow-btn in teams-power-ranking-card-prototype.html */
+  .pcard-follow-btn {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    color: var(--gray-800);
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -4px 8px rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s ease;
+  }
+  .pcard-follow-btn:hover { background: rgba(255, 255, 255, 0.22); }
+  .pcard-follow-btn:active { background: rgba(255, 255, 255, 0.3); }
+  .pcard-follow-btn.is-following {
+    background: rgba(46, 204, 88, 0.55);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #FFFFFF;
+  }
+  .pcard-follow-btn.is-following:hover { background: rgba(46, 204, 88, 0.68); }
+  .pcard-meta {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 12.5px;
+    color: var(--gray-500);
+  }
+  .pcard-stats-row { display: flex; gap: 20px; margin-top: 2px; }
+  .pcard-stat-label {
+    display: block;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .pcard-stat-value {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .pcard-quote {
+    margin: 0;
+    font-family: var(--font-imperial);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--gray-800);
+  }
+
+  /* ============ Share sheet ============
+     A bottom sheet modeled directly on
+     teams-power-ranking-card-prototype.html's own share sheet (same
+     handle/header/preview/actions structure, same Liquid Glass close
+     button, same 5 destination icons) — this one shares the whole list
+     rather than a My-Rankings selection, so it adds a left/right toggle
+     for which of two generated graphics to preview instead of a
+     top-10-vs-all switch. */
+  .share-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    max-width: 430px;
+    margin: 0 auto;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .share-sheet-overlay[hidden] { display: none; }
+  .share-sheet {
+    width: 100%;
+    max-height: 88vh;
+    background: var(--gray-800);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .share-sheet-handle {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--gray-500);
+    margin: 10px auto 2px;
+  }
+  .share-sheet-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 6px;
+  }
+  .share-sheet-title {
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--gray-100);
+  }
+  /* Liquid Glass, dark-tinted — the sheet behind it is white/light. */
+  .share-sheet-close {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    color: var(--gray-200);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .share-sheet-close:hover { background: rgba(0, 0, 0, 0.09); }
+  .share-sheet-close:active { background: rgba(0, 0, 0, 0.13); }
+  /* Left/right graphic-type toggle — same segmented-control look as
+     .view-toggle elsewhere in this file, just on the light sheet. */
+  .share-sheet-toggle {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 2px;
+    margin: 4px 16px 10px;
+    background: var(--gray-700);
+    border-radius: 12px;
+    padding: 3px;
+  }
+  .share-sheet-toggle-btn {
+    flex: 1;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--gray-400);
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 0;
+    cursor: pointer;
+  }
+  .share-sheet-toggle-btn.active { background: var(--gray-800); color: var(--gray-100); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+  .share-sheet-preview {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 6px 20px 4px;
+    border-radius: 14px;
+    border: 1px solid var(--gray-600);
+    background: var(--gray-700);
+  }
+  /* No separate HTML title chrome here, unlike the teams prototype:
+     the exported graphic itself draws its own Core Green title header
+     (see drawGraphicHeader() in the script), so the preview shows exactly
+     what gets saved/shared — nothing added or stripped by the sheet UI. */
+  .share-sheet-preview-media { padding: 0; border-radius: 13px 13px 0 0; overflow: hidden; }
+  .share-sheet-preview-img { display: block; width: 100%; }
+  .share-sheet-preview-img[hidden] { display: none; }
+  .share-sheet-preview-loading {
+    margin: 0;
+    padding: 40px 0;
+    font-family: var(--font-franklin);
+    font-size: 12px;
+    color: var(--gray-500);
+    text-align: center;
+  }
+  .share-sheet-actions {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 18px 14px 28px;
+  }
+  .share-sheet-action {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+  .share-sheet-action[hidden] { display: none; }
+  /* Liquid Glass, dark-tinted — same light-sheet context as
+     .share-sheet-close, so it uses the same recipe. */
+  .share-sheet-action-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-200);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: background 0.15s ease;
+  }
+  .share-sheet-action:hover .share-sheet-action-icon { background: rgba(0, 0, 0, 0.09); }
+  .share-sheet-action:active .share-sheet-action-icon { background: rgba(0, 0, 0, 0.13); }
+  .share-sheet-action-icon svg { width: 19px; height: 19px; }
+  .share-sheet-action-label {
+    font-family: var(--font-franklin);
+    font-weight: 500;
+    font-size: 10.5px;
+    color: var(--gray-400);
+  }
+</style>
+</head>
+<body>
+
+  <div class="device">
+
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>●●●●&nbsp;&nbsp;📶&nbsp;&nbsp;🔋</span>
+    </div>
+    <div class="masthead">The Athletic</div>
+
+    <div class="feed-filler">Top headlines</div>
+    <div class="feed-filler-row"></div>
+    <div class="feed-filler-row"></div>
+
+    <!-- ============ Player Power Rankings carousel module ============ -->
+    <section class="rankings-module" aria-label="NFL QB Tiers">
+
+      <div class="rankings-header">
+        <div class="rankings-pill">
+          <img class="rankings-pill-icon" src="iOS/assets/icons/leagues/nfl.png" alt="" width="20" height="20">
+          <span class="rankings-pill-label">NFL</span>
+        </div>
+      </div>
+
+      <h2 class="rankings-title">NFL QB Tiers</h2>
+      <p class="rankings-dek">50 NFL coaches and executives rank the league's quarterbacks from Tier 1 (best) to Tier 5 (backup-level). Two first-time Tier 1 picks this year — including, finally, Lamar Jackson.</p>
+
+      <div class="rankings-byline" id="rankingsByline"><!-- author byline renders here --></div>
+
+      <div class="rankings-meta-row">
+        <span class="rankings-swipe-hint" id="rankSwipeHint">Swipe for all 34 QBs →</span>
+        <div class="rankings-meta-right">
+          <span class="rankings-counter" id="rankCounter">1 / 34</span>
+          <div class="view-toggle" role="group" aria-label="Switch between card and list view">
+            <button type="button" class="view-toggle-btn active" id="viewToggleCards" aria-label="Card view" aria-pressed="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="2.6" />
+                <rect x="3" y="4" width="18" height="16" rx="3" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              </svg>
+            </button>
+            <button type="button" class="view-toggle-btn" id="viewToggleList" aria-label="List view" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+                <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="6" x2="20" y2="6" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+                <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="12" x2="20" y2="12" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+                <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" stroke-width="2.6" />
+                <line x1="4" y1="18" x2="20" y2="18" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rankings-row" id="rankingsRow">
+        <div class="rankings-track" id="rankingsTrack"><!-- cards render here --></div>
+      </div>
+
+      <div class="rankings-list" id="rankingsList" hidden>
+        <div class="rankings-list-titlebar">
+          <img class="rankings-list-wordmark" src="Assets/iOS/iOS/Brand%20wordmark.svg" alt="The Athletic" width="100" height="13">
+          <span class="rankings-list-title">NFL QB Tiers</span>
+          <span class="rankings-list-byline">50 coaches and executives, surveyed anonymously</span>
+        </div>
+        <div class="rankings-list-header">
+          <span>Rank</span>
+          <span>Chg</span>
+          <span>Quarterback</span>
+          <span>Tier</span>
+        </div>
+        <div id="rankingsListRows"><!-- list rows render here --></div>
+      </div>
+      <!-- Floating, not a descendant of .rankings-list — position:fixed
+           needs to escape that (overflow:hidden) box anyway, and its
+           visibility is driven by whether .rankings-list intersects the
+           viewport (see the IntersectionObserver below), not by DOM
+           nesting. -->
+      <button type="button" class="rankings-list-share-btn" id="listShareBtn" aria-label="Share the NFL QB Tiers list"><!-- share icon renders here --></button>
+
+    </section>
+
+    <div class="feed-filler">More from your feed</div>
+    <div class="feed-filler-row"></div>
+    <div class="feed-filler-row"></div>
+
+    <!-- ============ Share sheet (opened by the list view's floating share
+         button) ============ -->
+    <div class="share-sheet-overlay" id="shareSheetOverlay" hidden>
+      <div class="share-sheet">
+        <div class="share-sheet-handle"></div>
+        <div class="share-sheet-header">
+          <span class="share-sheet-title">Share</span>
+          <button type="button" class="share-sheet-close" id="shareSheetClose" aria-label="Close">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+              <line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="5" y1="5" x2="19" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="19" y1="5" x2="5" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+            </svg>
+          </button>
+        </div>
+        <div class="share-sheet-toggle" role="group" aria-label="Choose a graphic to share">
+          <button type="button" class="share-sheet-toggle-btn active" data-graphic="tier" aria-pressed="true">By Tier</button>
+          <button type="button" class="share-sheet-toggle-btn" data-graphic="full" aria-pressed="false">Full List</button>
+        </div>
+        <div class="share-sheet-preview">
+          <div class="share-sheet-preview-media">
+            <img class="share-sheet-preview-img" id="shareSheetPreviewImg" alt="Preview of the NFL QB Tiers graphic" hidden>
+            <p class="share-sheet-preview-loading" id="shareSheetLoading">Generating preview…</p>
+          </div>
+        </div>
+        <div class="share-sheet-actions" id="shareSheetActions">
+          <button type="button" class="share-sheet-action" id="shareSaveBtn">
+            <span class="share-sheet-action-icon" id="shareSaveIcon"></span>
+            <span class="share-sheet-action-label">Save Image</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareCopyBtn">
+            <span class="share-sheet-action-icon" id="shareCopyIcon"></span>
+            <span class="share-sheet-action-label">Copy</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareMessageBtn">
+            <span class="share-sheet-action-icon" id="shareMessageIcon"></span>
+            <span class="share-sheet-action-label">Message</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareWhatsappBtn">
+            <span class="share-sheet-action-icon" id="shareWhatsappIcon"></span>
+            <span class="share-sheet-action-label">WhatsApp</span>
+          </button>
+          <button type="button" class="share-sheet-action" id="shareInstagramBtn">
+            <span class="share-sheet-action-icon" id="shareInstagramIcon"></span>
+            <span class="share-sheet-action-label">Instagram</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  // ---- Single source of truth for the carousel's data --------------------
+  // Extracted verbatim from reference-rankings/NFL QB Tiers 2025…html — real
+  // panel-vote data, real quotes, real cutout hero photos (The Athletic's own
+  // isolated-player-on-a-circle asset for each QB). See design-style.md's
+  // "Data model implied by the editorial format" for the field lineage this
+  // extends (rank, average/tiebreak score, previous-period value for a
+  // movement indicator, a short attributed blurb).
+  //   rank        — display rank, "T-" prefix shared by ties
+  //   tier        — this year's tier, 1 (best) to 5 (backup-level)
+  //   avg         — panel's average tier vote (decimal tiebreaker)
+  //   prevTier    — last year's tier, or "New" if this is a Tiers debut
+  //                 (tierChange() below derives the ▲/▼ badge from this)
+  //   pullquote   — the bolded pull-quote The Athletic ran with this entry
+  //   blurb       — condensed analysis paragraph with embedded attributed
+  //                 anonymous-panelist quotes (coaches/execs/GMs)
+  //   photo       — real cutout hero photo (transparent PNG, isolated player
+  //                 on a fixed teal-circle backdrop — the asset the source
+  //                 article itself uses, not a placeholder)
+  const PLAYERS = [
+    { rank: "T1", tier: 1, avg: "1.00", name: "Joe Burrow", team: "Bengals", teamFull: "Cincinnati Bengals", color: "#FF6600", prevTier: "1", age: "28", ht: "6'4\"", wt: "215", pullquote: "The closest thing to Joe Montana that I have seen", blurb: "This is Burrow's fourth consecutive season in Tier 1 and his first as a unanimous top-tier selection. Rodgers (six), Mahomes (five), Tom Brady (four) and Russell Wilson (one) are the only other unanimous Tier 1 selections in the survey's history. \"He is the closest thing to Joe Montana that I have seen,\" a head coach said. \"That is about as big a compliment I can give you as a quarterback.\" One difference: Montana's San Francisco 49ers led the NFL in fewest points allowed during the 1980s, while Burrow's Cincinnati Bengals ranked 25th last season.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04153344/JoeBurrow.png" },
+    { rank: "T1", tier: 1, avg: "1.00", name: "Patrick Mahomes", team: "Chiefs", teamFull: "Kansas City Chiefs", color: "#940202", prevTier: "1", age: "29", ht: "6'2\"", wt: "225", pullquote: "The best quarterback to ever live", blurb: "Voters still consider Mahomes the best even though others have surpassed him statistically. \"I think Mahomes is the best quarterback to ever live,\" an offensive coordinator said, \"but the gap is smaller than it was a year ago.\" This is Mahomes' fifth season as a unanimous Tier 1 selection. Only Aaron Rodgers, with six, has more unanimous selections since QB Tiers debuted in 2014. \"Mahomes is the best quarterback in the world,\" a GM said. \"Josh Allen and Lamar Jackson had better individual seasons. In fairness, the infrastructure around Patrick has eroded.\" Mahomes led the league last season in game-winning drives (seven) and fourth-quarter comeback victories (five), per Pro Football Reference.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/05093245/PatrickMahomes.png" },
+    { rank: "3", tier: 1, avg: "1.06", name: "Josh Allen", team: "Bills", teamFull: "Buffalo Bills", color: "#940202", prevTier: "1", age: "29", ht: "6'5\"", wt: "237", pullquote: "The toughest quarterback to defend", blurb: "Allen ranks a tick below Mahomes and Burrow even though some consider him the most challenging to defend. That's because a few voters valued pure passing over running strongly enough to place a line after Mahomes and Burrow. \"Josh Allen presents some issues that Mahomes doesn't present, just how strong he is and how good of a runner he is,\" one voter said. \"I watched him single-handedly beat us. It's just, God, you can't tackle him. And he's got a cannon.\" Allen set career bests in 2024 for EPA per pass play, sack rate and rate of pass plays gaining more than 15 yards.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04153711/JoshAllen.png" },
+    { rank: "4", tier: 1, avg: "1.08", name: "Lamar Jackson", team: "Ravens", teamFull: "Baltimore Ravens", color: "#250250", prevTier: "2", age: "28", ht: "6'2\"", wt: "205", pullquote: "He has taken leaps and bounds", blurb: "Jackson has finally ascended into the top tier after two seasons of good health and great production in an offense showcasing his passing. He did so with 46 top-tier votes, twice his total from 2024 QB Tiers. \"Lamar has really done a great job, and I do not think it has been him that has let them down (in the playoffs),\" a defensive coordinator said. \"It has been other parts of their team. He has taken leaps and bounds in the last couple years.\" Jackson set career bests last season for passing yards (4,172), yards per attempt (8.8), touchdown passes (41), interceptions (four), passer rating (119.6), sack rate (4.6 percent) and rate of passes gaining 15-plus yards (21.3 percent).", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04153742/LamarJackson.png" },
+    { rank: "5", tier: 1, avg: "1.50", name: "Matthew Stafford", team: "Rams", teamFull: "Los Angeles Rams", color: "#003594", prevTier: "2", age: "37", ht: "6'3\"", wt: "214", pullquote: "Every time I watch him, I go, 'Whoa!'", blurb: "Stafford is making his Tier 1 debut at age 37 after 11 consecutive seasons in Tier 2. His ability to work through a back injury that has sidelined him in camp will be key. \"I always had a high admiration for him as a competitor, arm talent and playmaker, but always thought he was a gunslinger,\" one voter said. \"He still has that in him, but his mind, his ability to process, think and communicate stand out.\" Stafford's ability to process and play from the pocket has long endeared him to offensive coaches who prefer to play that way. \"I guarantee all your 1s for Stafford came from offensive coaches,\" a defensive coordinator said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04153810/MatthewStafford.png" },
+    { rank: "6", tier: 2, avg: "1.72", name: "Jayden Daniels", team: "Commanders", teamFull: "Washington Commanders", color: "#620018", prevTier: "New", age: "24", ht: "6'4\"", wt: "210", pullquote: "The s--- ain't too big for him ... he doesn't get flustered", blurb: "No second-year QB has made a higher Tiers debut than Daniels. His 1.71 average and 17 top-tier votes break the records C.J. Stroud set last year. Stroud had eclipsed 2021 Justin Herbert. \"What I respect most is it never seems too big for him,\" a defensive coordinator said of Daniels. \"He would stand in the pocket and deliver the ball. Once we saw him running around, it was, 'OK, he is going to be a problem.'\" Daniels became the only rookie starting quarterback in the Super Bowl era to reach a conference championship game without a top defense (Washington ranked 24th in defensive EPA per play, per TruMedia).", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04153558/JaydenDaniels.png" },
+    { rank: "7", tier: 2, avg: "1.80", name: "Justin Herbert", team: "Chargers", teamFull: "Los Angeles Chargers", color: "#0085CA", prevTier: "2", age: "27", ht: "6'6\"", wt: "236", pullquote: "A click slower than some of the elites, but he is a stud", blurb: "The downward trend for Herbert among Tiers voters is clear. After peaking with 36 top-tier votes in 2022, the number has fallen to 29, 19 and now 13. \"A lot of people have him as an automatic 1,\" an offensive coordinator said. \"I want him to take it. It seems like he is almost there, but he hasn't really done it.\" The talent is obvious. \"He is just a little bit robotic,\" a defensive coordinator said. \"You can tell, the way he processes everything, it is a click slower than some of the elites, but he is a stud - he is really good.\" Shifting to a more run-oriented offense under coach Jim Harbaugh is another factor.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04154006/JustinHerbert.png" },
+    { rank: "8", tier: 2, avg: "2.06", name: "Jared Goff", team: "Lions", teamFull: "Detroit Lions", color: "#0085CA", prevTier: "2", age: "30", ht: "6'4\"", wt: "217", pullquote: "Has played at a 1 level for three years", blurb: "Goff's standing in Tiers improved for a third consecutive year, resulting in career bests in ranking (eighth) and average vote (2.06). \"Goff and Burrow are probably the two best anticipation throwers that I have seen lately, so you have to put him at a 1,\" a head coach said. \"You might put him at a 2 from a pure quarterback standpoint - he struggles to extend plays - but the guy has played at a 1 level for three years.\" Goff has a league-high 96 touchdown passes over the past three seasons. \"You will see this year if it is the coordinator or the quarterback, but I think it has been more the quarterback than advertised,\" an exec said, noting that the Lions lost offensive coordinator Ben Johnson.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04154057/JaredGoff.png" },
+    { rank: "T9", tier: 2, avg: "2.18", name: "C.J. Stroud", team: "Texans", teamFull: "Houston Texans", color: "#05192E", prevTier: "2", age: "23", ht: "6'3\"", wt: "218", pullquote: "It's time for his team to take the next step", blurb: "Stroud remained solidly within Tier 2 despite suffering the fifth-largest year-over-year fall in average vote. \"He got rattled because of his offensive line, and you saw that in his play,\" one defensive coordinator said. \"When I watched them, I felt like he felt the rush. Because of that, I still think the talent is in there.\" Stroud got one Tier 1 vote, down from 12 last year. \"Everybody wants to downgrade C.J.,\" another defensive coordinator said. \"His No. 1 receiver was out, the line did not play great, the run game wasn't there like it should have been.\" This voter saw Stroud as a low 2.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04154139/CJStroud.png" },
+    { rank: "T9", tier: 2, avg: "2.18", name: "Jalen Hurts", team: "Eagles", teamFull: "Philadelphia Eagles", color: "#005E6D", prevTier: "2", age: "27", ht: "6'1\"", wt: "223", pullquote: "A really good player on a team of really good players", blurb: "Hurts' standing in Tiers barely changed after his Eagles won the Super Bowl with a run-oriented offense, a stacked roster and high-level production from Hurts on the biggest stage. \"Jalen does everything the right way for how they have been built,\" an offensive coordinator said. \"I see him as a really good player on a team with a bunch of really good players.\" This is Hurts' third consecutive season in Tier 2. \"He has improved from the pocket, but when you play him, you still want him to beat you from there - that is the whole plan,\" a head coach said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04154214/JalenHurts.png" },
+    { rank: "11", tier: 2, avg: "2.30", name: "Baker Mayfield", team: "Buccaneers", teamFull: "Tampa Bay Buccaneers", color: "#940202", prevTier: "3", age: "30", ht: "6'1\"", wt: "215", pullquote: "From a wild man to a contained wild man", blurb: "Another strong season in Tampa pushed Mayfield to career bests in ranking (11th) and average tier vote (2.30). \"He went from being a wild man to being a contained wild man now,\" an offensive coach said. \"He is still going to turn the ball over here and there, but he can elevate everyone around him through his style of play.\" Mayfield's 33 votes in Tier 2 were one fewer than he commanded over the past five years combined. \"He has matured,\" a defensive coach said. \"Think of this: Same guy who was wearing a bath robe in a commercial when he played for the Browns?\" Mayfield has gone from Dave Canales to Liam Coen to Josh Grizzard as his offensive coordinator in three years with the Buccaneers.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161641/BakerMayfield.png" },
+    { rank: "12", tier: 2, avg: "2.36", name: "Dak Prescott", team: "Cowboys", teamFull: "Dallas Cowboys", color: "#05192E", prevTier: "2", age: "32", ht: "6'2\"", wt: "238", pullquote: "It catches up to him when it really matters the most", blurb: "Prescott slipped lower in Tiers than at any point since 2019 after missing nine games to injury last season. He still remained solidly within Tier 2. \"I'm not necessarily worried about anything when I play him, but he's just solid,\" a defensive coordinator said. \"He will put the ball where it needs to be, he can scramble a little bit. If he has to carry it and throw it 50 times, you'll get him a few times. I think he is still good. I started to 2 slash 3 him, but I think he is a 2.\" Entering his 10th year, Prescott has as many seasons leading the league in average annual salary as he has playoff wins (two).", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161720/DakPrescott.png" },
+    { rank: "13", tier: 2, avg: "2.44", name: "Jordan Love", team: "Packers", teamFull: "Green Bay Packers", color: "#06391A", prevTier: "2", age: "26", ht: "6'4\"", wt: "219", pullquote: "Bit of a gunslinger ... but more consistently good than bad", blurb: "Love leveled off after his promising 2024 season, rising one spot in the rankings while his average tier vote improved by only four-hundredths of a point. Knee and groin injuries limited him at times last season. \"I do like his accuracy, his athleticism and his arm strength,\" one exec said. \"The vision and processing holds me back a little bit.\" Opinions surrounding Love were varied and fascinating. \"When we faced him last year, I felt like if you could get to him, you could rattle him,\" a defensive coach said. \"He distributes the ball, and they have big skill (players who are) tough to bring down. That is how he makes his hay. I do not watch him and think, 'Oh, he is f---ing people up.'\" Another coach saw it the other way around, contending the Packers could do more for Love.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161801/JordanLove.png" },
+    { rank: "14", tier: 2, avg: "2.46", name: "Brock Purdy", team: "49ers", teamFull: "San Francisco 49ers", color: "#940202", prevTier: "2", age: "25", ht: "6'1\"", wt: "220", pullquote: "The draft is over, OK? The guy has played his ass off", blurb: "Purdy slid slightly, with seven fewer Tier 2 votes than in 2024, but opinions of him have not shifted fundamentally. \"He does more on tape than I think a lot of guys can do in terms of the anticipation and accuracy,\" an opposing coach said. \"Yes, it faltered at times. I also got the sense he was playing through some things. But when he is healthy and on, I don't think there are a lot of guys who are at the level he is at.\" Purdy leads the NFL in EPA per pass play over the past three seasons. He was fifth in 2024. Tua Tagovailoa also ranks among the top five.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161832/BrockPurdy.png" },
+    { rank: "15", tier: 3, avg: "2.68", name: "Kyler Murray", team: "Cardinals", teamFull: "Arizona Cardinals", color: "#620018", prevTier: "3", age: "28", ht: "5'10\"", wt: "207", pullquote: "I still don't trust him. He has 2 talent but is still a 3", blurb: "Murray has stood almost frozen in Tiers balloting since 2023. This year, Baker Mayfield passed him. Aaron Rodgers, Tua Tagovailoa and Trevor Lawrence slipped below him. Is treading water good for a highly paid quarterback stuck atop Tier 3? \"I've played him too much, and I still think he's a 3,\" a defensive coach said. \"I don't think he wins it for you in the two-minute drill. If you want to be in the top half of this league, you have to win in the two-minute drill and control it. He does not do that.\" Another defensive coach who faced Murray saw things similarly.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161908/KylerMurray.png" },
+    { rank: "16", tier: 3, avg: "2.76", name: "Aaron Rodgers", team: "Steelers", teamFull: "Pittsburgh Steelers", color: "#1C1C1C", prevTier: "2", age: "41", ht: "6'2\"", wt: "223", pullquote: "He can't be dynamic like he was ... but I still think he can play", blurb: "Rodgers' average tier vote plummeted a full point from last year, a drop more than twice as large as for any other player (Daniel Jones fell by nearly one-half tier). It's strange seeing him way down here. \"You are hoping for Brett Favre to the Minnesota Vikings, but they had Adrian Peterson, Percy Harvin and a bunch of dudes,\" one exec said. The Steelers acquired receiver DK Metcalf. \"Aaron has had good route runners around him when he was at his best,\" a defensive coach said. \"I don't know who the route runner is on that team. Metcalf is like a bully, jump-ball, kill-you-in-the-red-zone guy. Truthfully, I have no idea how that works there.\" Rodgers' age (41), late arrival to the team (June), lack of history with Pittsburgh's offensive coordinator (Arthur Smith) and recent injury history (torn Achilles in September 2023) are among the factors working against success in Pittsburgh.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04161944/AaronRodgers.png" },
+    { rank: "17", tier: 3, avg: "2.80", name: "Tua Tagovailoa", team: "Dolphins", teamFull: "Miami Dolphins", color: "#005E6D", prevTier: "3", age: "27", ht: "6'1\"", wt: "225", pullquote: "They literally cannot operate the offense when he is not out there", blurb: "The Dolphins' offense averaged 24.1 points per game in 11 games with Tagovailoa in 2024, compared to 13.3 in six games without him. \"They literally cannot operate the offense when he is not out there, and then they are a top-10 offense when he is out there,\" an offensive coach said. \"I don't even like watching him play, but at this point, dude, I can't say you are not that guy.\" That voter was among a dozen placing Tagovailoa in Tier 2, half as many as in 2024. \"He is probably a 2 on the production, but if the game is on the line, I'd be scared to death if he were my quarterback,\" an exec said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162019/TuaTagovailoa.png" },
+    { rank: "18", tier: 3, avg: "2.82", name: "Trevor Lawrence", team: "Jaguars", teamFull: "Jacksonville Jaguars", color: "#005E6D", prevTier: "3", age: "25", ht: "6'6\"", wt: "220", pullquote: "Liam Coen can help him if he is able to be helped", blurb: "Lawrence peaked in Tier 2 entering the 2023 season. He's fallen each of the past two years, with only flickering hope among voters that he'll ever challenge for Tier 1. \"I thought he would be better,\" a head coach said, \"but he just isn't naturally accurate.\" Injuries were a big factor last season. \"I always thought Lawrence was a unique talent from a body-type standpoint - so athletic for a guy that tall - and the way he played at Clemson was outstanding,\" another head coach said. \"But when I watched him this year (2024), the instinct wasn't as high there. He looked hesitant. He had some ugly tape.\" The Jaguars are betting that improved health and new coach Liam Coen can help Lawrence get back to where he stood entering 2023, when he ranked eighth in Tiers voting and commanded 36 votes in the top two tiers.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162052/TrevorLawrence.png" },
+    { rank: "19", tier: 3, avg: "2.90", name: "Geno Smith", team: "Raiders", teamFull: "Las Vegas Raiders", color: "#1C1C1C", prevTier: "3", age: "34", ht: "6'3\"", wt: "221", pullquote: "Pretty good at everything, but nothing stands out as an elite trait", blurb: "Smith, making his third consecutive appearance in Tier 3, inched up to a career-best 2.90 average. But this was more a case of Smith receiving fewer votes in Tier 4 than it was about him commanding more votes in Tier 2. \"Geno is pretty good at everything, but nothing stands out as an elite trait,\" a defensive coordinator said. \"There is not one X-Man power where you are like f---, this guy.\" For a player whose average grade is in the middle, there's considerable variance in opinions on Smith. \"He has as good of arm talent as anyone, he is accurate and he has won games where he was the reason in some of those fourth-quarter victories and shootouts,\" an offensive coordinator said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/10111012/Property-1GenoSmith.png" },
+    { rank: "T20", tier: 3, avg: "3.00", name: "Bo Nix", team: "Broncos", teamFull: "Denver Broncos", color: "#FF6600", prevTier: "New", age: "25", ht: "6'2\"", wt: "217", pullquote: "He is definitely going to win. He has a chance to elevate", blurb: "Nix, the sixth quarterback selected in the 2024 draft, ranks second among them to Washington's Daniels heading into the group's second season. \"He looks pretty sharp, he knows where to go with the ball, he runs better than you think, he throws better than you think,\" a defensive coordinator said. \"He looks like he is a good competitor who makes people around him better. That is what your quarterback has to do.\" One GM whose team was not in the market to draft a quarterback said Nix was much better than he anticipated. He thought Nix would be a \"dink-and-dunk\" quarterback.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162322/BoNix.png" },
+    { rank: "T20", tier: 3, avg: "3.00", name: "Sam Darnold", team: "Seahawks", teamFull: "Seattle Seahawks", color: "#05192E", prevTier: "4", age: "28", ht: "6'3\"", wt: "225", pullquote: "When you put the pieces around him, (he) has a higher ceiling", blurb: "The Seahawks swapped out Geno Smith for the younger, less expensive Darnold. Did they upgrade? \"I think Geno operates at a higher level, especially in critical moments,\" an offensive coach said. \"Sam's two-minute stuff versus Geno's two-minute stuff, that is where Geno separates himself.\" Darnold outdueled Smith in Seattle last season, tossing three touchdown passes, including the game-winner in the final four minutes, as Minnesota beat the Seahawks. Darnold had no interceptions. Smith had two. \"Sam, when you put the pieces around him, has as higher ceiling,\" another voter said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162358/SamDarnold.png" },
+    { rank: "22", tier: 3, avg: "3.12", name: "Drake Maye", team: "Patriots", teamFull: "New England Patriots", color: "#05192E", prevTier: "New", age: "22", ht: "6'4\"", wt: "225", pullquote: "He can ascend pretty quick if he can start to hit progressions", blurb: "Maye, the third quarterback drafted in the 2024 class, checks in third among the group here, behind Daniels and Nix. \"Daniels and Nix went into a helluva lot better situations than Drake did,\" an offensive coach said. \"(Maye) is a big athlete that has good vision, can push the ball up the field, he can run, I think he's coachable. Josh (McDaniels) does a good job of eliminating negative plays with a quarterback, so I think that will help him.\" Maye took 32 sacks and suffered 10 interceptions in 12 starts. He barely played in two of the three starts that New England won, exiting one with an injury (the Patriots rested him after one series in Week 18).", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162505/DrakeMaye.png" },
+    { rank: "23", tier: 3, avg: "3.20", name: "Caleb Williams", team: "Bears", teamFull: "Chicago Bears", color: "#05192E", prevTier: "New", age: "23", ht: "6'1\"", wt: "215", pullquote: "You saw signs and ability, and you saw signs and ability that scare you", blurb: "Williams entered the 2024 draft as the consensus No. 1 quarterback. He enters his second season facing questions about his ability to process and play quickly after taking 68 sacks, third-most in NFL history. \"I think that will come in time,\" a GM said. \"Maybe it is a little bit like Josh (Allen) early in his career, where he has so much good other stuff that you will live with some negative plays, and as he gets more snaps under his belt, that part will come.\" Most evaluations reflected some skepticism. \"He's got the talent to go up, but in terms of processing ability and getting the ball out of his hands, it was the worst we played against,\" a defensive coordinator said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162532/CalebWilliams.png" },
+    { rank: "24", tier: 3, avg: "3.42", name: "Bryce Young", team: "Panthers", teamFull: "Carolina Panthers", color: "#0085CA", prevTier: "4", age: "24", ht: "5'10\"", wt: "204", pullquote: "I don't know if there's enough talent to become a 2", blurb: "The Panthers ranked 14th in offensive points per game in the 10-game stretch after Young returned to the lineup in Week 8. They were 32nd across his 10 previous starts. There was clearly improvement. What does it mean? \"Don't get fooled by the final games of a season when you are out of it and the teams you are playing are out of it,\" a veteran coach said. \"That is where his production came from. Everyone is excited about it. Now, you start the season over again, you are playing teams that are game-planning seriously, that have a lot to play for, and it's different.\" An executive from an AFC team cast the lone Tier 2 vote for Young.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162555/BryceYoung.png" },
+    { rank: "25", tier: 3, avg: "3.48", name: "Kirk Cousins", team: "Falcons", teamFull: "Atlanta Falcons", color: "#940202", prevTier: "2", age: "36", ht: "6'3\"", wt: "205", pullquote: "Where is he at physically? ... He should be a 2 if healthy", blurb: "Cousins is included in QB Tiers in case he lands elsewhere as the Falcons transition to Michael Penix Jr. as their starter. \"I look at Rodgers and Kirk Cousins similarly, as older players coming off the Achilles,\" an offensive coach said. \"If Cousins were starting in Atlanta, I would say Kirk would have a bounce-back year. I think Aaron will bounce back. Both will be healthier, and if that's the case, we will see the arm talent more.\" Voters suspected Falcons ownership was reluctant to trade Cousins after the team invested so much in him. \"He is probably in that 4 category right now, because where is he at physically?\" an offensive coach said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162629/KirkCousins.png" },
+    { rank: "26", tier: 4, avg: "3.56", name: "Russell Wilson", team: "Giants", teamFull: "New York Giants", color: "#05192E", prevTier: "3", age: "36", ht: "5'11\"", wt: "206", pullquote: "What he had that was magical about him is gone", blurb: "Wilson, now on his third team in three seasons, has fallen in the Tiers rankings from tied for first (2020) to fourth (2021), eighth (2022), 16th (2023), 22nd (2024) and 26th (2025). \"If you are a quarterback who has to create time - instead of one who knows where everything is, hits his back foot and throws it - then this is what happens to you,\" a defensive coach said. Giants coach Brian Daboll has repeatedly said Wilson is the starter entering the season. The fact that Daboll needs to make such declarations reflects Wilson's tenuous status.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/10113900/Property-1RussellWilson.png" },
+    { rank: "27", tier: 4, avg: "3.72", name: "Justin Fields", team: "Jets", teamFull: "New York Jets", color: "#06391A", prevTier: "4", age: "26", ht: "6'3\"", wt: "227", pullquote: "In an RPO play-action system, this guy could be really positive", blurb: "Fields peaked among Tiers voters as a low 3 entering 2023. His average tier vote entering 2025 (3.74) is about what it was after his 2021 rookie season (3.72). The difference is that Fields has played enough to make it tougher for voters to envision meaningful growth. \"(The Jets) know who he is, what he is, and they are going to try to structure things for him,\" an offensive coach said. \"The problem is, the hardest thing to fix with a quarterback is keeping their eyes up the field, seeing the field and not being affected by the rush. And those are three of the worst things that he does.\" The Steelers started 4-2 with Fields in the lineup last season.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/10115208/Property-1JustinFields.png" },
+    { rank: "28", tier: 4, avg: "3.78", name: "Michael Penix Jr.", team: "Falcons", teamFull: "Atlanta Falcons", color: "#940202", prevTier: "New", age: "25", ht: "6'2\"", wt: "216", pullquote: "He finished strong. He gives you hope", blurb: "Penix started three games late in his rookie season. It wasn't much to go on. \"I would make him a 3 because, small sample size, but I thought the guy played really well in that two-minute drill against Washington,\" an offensive coach said. \"How you play in two-minute is the X-factor for quarterbacks in the NFL. For a young guy, he went in there, and he was slinging it. I think you can win with him and a healthy run game.\" Getting the first-team reps this offseason should help. \"His poise, his arm strength made a difference,\" an exec said. \"He can make a lot more throws than Kirk (Cousins) could make (last season). His decision-making was really good. His accuracy was spotty at times, but outside of that, he finished strong. He gives you hope.\" A former GM thought Penix needed better vertical weapons.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162911/MichaelPenix.png" },
+    { rank: "29", tier: 4, avg: "4.00", name: "J.J. McCarthy", team: "Vikings", teamFull: "Minnesota Vikings", color: "#250250", prevTier: "New", age: "22", ht: "6'3\"", wt: "219", pullquote: "I just hope he is not an (injury-prone) guy", blurb: "McCarthy drew all Tier 4 votes because he has yet to play in an NFL game, not because voters are necessarily down on him. \"I would have hope for him with that coach and that system if he can stay healthy,\" a former GM said. \"He has that slight build. He looked pretty good in the (2024) preseason, in a short period of time. I believe in the head coach and the system. He has the arm strength, he is athletic, he is smart, he has all those things.\" Playing indoors could be another plus, a head coach said. \"I just hope he is not an (injury-prone) guy,\" this coach said.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04162932/JJMcCarthy.png" },
+    { rank: "30", tier: 4, avg: "4.02", name: "Daniel Jones", team: "Colts", teamFull: "Indianapolis Colts", color: "#012F6C", prevTier: "4", age: "28", ht: "6'5\"", wt: "230", pullquote: "He still might be (Tier 3). He has to show it", blurb: "Voters overwhelmingly thought Jones would win the starting job in Indy. That said much about his primary competition, Anthony Richardson, who ranked ahead of only Spencer Rattler and Kenny Pickett in Tiers voting this year and then dislocated his pinkie finger in the preseason opener. \"I get nervous with Jones,\" an offensive coach said. \"I understand if you are not very good on offense and cannot protect, there will plays when you look bad, but there are too many times where he has a guy wide open and he throws it in the dirt or 10 feet over his head. I just don't think he is naturally accurate, and I did not think he was in college.\" Jones had 10 touchdown passes and 13 interceptions over the past two seasons with the Giants.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/10112716/Property-1DanielJones.png" },
+    { rank: "31", tier: 4, avg: "4.08", name: "Joe Flacco", team: "Browns", teamFull: "Cleveland Browns", color: "#FF3C00", prevTier: "New", age: "40", ht: "6'6\"", wt: "230", pullquote: "He's still playing?", blurb: "Flacco is making his first QB Tiers appearance since 2021. Voters are slightly higher on him now, at age 40, than they were back then, at 36. \"He's still playing?\" a defensive coordinator asked. Flacco is the favorite to start in Week 1, with Kenny Pickett limited by a hamstring injury and the two rookie draft choices, Dillon Gabriel and Shedeur Sanders, working in the background. \"I respect him, particularly in that scheme,\" another defensive coordinator said of Flacco. \"He pairs well with what (Kevin) Stefanski wants to do.\" Little-known fact: Flacco has a higher completion rate, yards per attempt and passer rating over the past two seasons than he had in his career previously.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163032/JoeFlacco.png" },
+    { rank: "32", tier: 4, avg: "4.18", name: "Anthony Richardson", team: "Colts", teamFull: "Indianapolis Colts", color: "#012F6C", prevTier: "4", age: "23", ht: "6'4\"", wt: "244", pullquote: "I think it is a pipe dream right now", blurb: "An overwhelming majority of voters expected Daniel Jones to beat out Richardson for the job, well before Richardson dislocated his right pinkie finger on a sack in the preseason opener. Faith in Richardson's long-term development has cratered, with 11 voters placing him in Tier 5, reserved for players who should not start at all. \"I think it is a pipe dream right now, based on what I have seen, to say he is a starter in the NFL,\" an exec said. \"The accuracy is not there. If you want to do college football RPO-type stuff, that is your guy. But some of the stuff last year was not starter quality.\" Voters remain mystified by Richardson's decision to briefly exit a Week 8 game at Houston because he was too \"tired\" to stay on the field.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163040/AnthonyRichardson.png" },
+    { rank: "33", tier: 4, avg: "4.34", name: "Spencer Rattler", team: "Saints", teamFull: "New Orleans Saints", color: "#C5AD7C", prevTier: "New", age: "24", ht: "6'0\"", wt: "211", pullquote: "He's up and down. Not real high on him", blurb: "Rattler, who started six games as a fifth-round rookie in 2024, appears in Tiers this year in case New Orleans does not go with second-round rookie Tyler Shough. (Jake Haener has also rotated in with the Saints' first-teamers but is not considered a serious contender to start.) \"You watch Rattler play against Tampa Bay in his first game, then watch him play against Tampa Bay in his last game, I mean, there was a lot to love there,\" the lone voter placing Rattler in Tier 3 said. \"He improved. I thought Rattler definitely had a chance to be a starter.\" The Saints went 0-6 and averaged 10.8 points per game on offense with Rattler in the lineup last season.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163152/SpencerRattler.png" },
+    { rank: "34", tier: 5, avg: "4.56", name: "Kenny Pickett", team: "Browns", teamFull: "Cleveland Browns", color: "#FF3C00", prevTier: "New", age: "27", ht: "6'3\"", wt: "220", pullquote: "Sometimes, guys just get into bad situations", blurb: "Pickett and Ben Roethlisberger combined to start 38 games for the Steelers when Matt Canada was the team's offensive coordinator. The offense averaged slightly more yards per play (4.9 to 4.8) and EPA per play (-0.05 to -0.06) in the 22 games Pickett started than in the 16 games Roethlisberger started. \"Sometimes, guys just get into bad situations, so you really don't know what they are,\" a defensive coordinator said. \"That is why sometimes you see guys go somewhere else and you say, 'Hey, the guy can play a little bit.' They can all play if they are drafted in the first round. Do they get in the right system?\" Pickett has made 22 of his 25 career starts so far with Canada as his offensive coordinator.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163218/KennyPickett.png" },
+  ];
+
+  // Tier-change indicator — same up/down/steady pattern as the teams
+  // prototype's movement(), computed from tier vs. prevTier instead of
+  // rankNum vs. lastRankNum, plus a "new" case for Tiers debuts (which have
+  // no previous tier to diff against).
+  function tierChange(tier, prevTier) {
+    if (prevTier === "New") return { cls: "new", label: "NEW" };
+    const delta = Number(prevTier) - tier; // positive = improved (lower tier number is better)
+    if (delta === 0) return { cls: "steady", label: "—" };
+    if (delta > 0) return { cls: "up", label: `▲ ${delta}` };
+    return { cls: "down", label: `▼ ${Math.abs(delta)}` };
+  }
+
+  // Darkens a hex color by a given amount (0-1) — used for the card body
+  // panel, which per design-style.md format 2 should read as "a darker
+  // tonal shade of the card's accent hue," not a neutral gray.
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) * (1 - amt));
+    const g = Math.round(((n >> 8) & 255) * (1 - amt));
+    const b = Math.round((n & 255) * (1 - amt));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  // Lightens a hex color toward white by a given amount (0-1) — the
+  // opposite of shade(), used to find a legible tint of the team color.
+  function tint(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) + (255 - ((n >> 16) & 255)) * amt);
+    const g = Math.round(((n >> 8) & 255) + (255 - ((n >> 8) & 255)) * amt);
+    const b = Math.round((n & 255) + (255 - (n & 255)) * amt);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  // WCAG contrast ratio between two colors (hex "#rrggbb" or "rgb(r, g, b)").
+  function parseColorParts(str) {
+    if (str[0] === "#") {
+      const n = parseInt(str.slice(1), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    const m = str.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    return [Number(m[1]), Number(m[2]), Number(m[3])];
+  }
+  function relativeLuminance([r, g, b]) {
+    const f = (c) => {
+      c /= 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  }
+  function contrastRatio(colorA, colorB) {
+    const lA = relativeLuminance(parseColorParts(colorA));
+    const lB = relativeLuminance(parseColorParts(colorB));
+    const lighter = Math.max(lA, lB);
+    const darker = Math.min(lA, lB);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+  // Picks the lightest-touch tint of the team color that still clears WCAG
+  // AA (4.5:1) against the panel it sits on. Many team primaries are
+  // already dark (navy, black, deep maroon) — using that raw hex as text on
+  // a *further-darkened* shade of itself is illegible on exactly those
+  // cards. Tinting toward white until it clears the bar keeps the stat
+  // numerals reading as "this card's own color, lightened" rather than
+  // switching to a flat, palette-unrelated white or gray.
+  function accentTextColor(teamColor, panelBg) {
+    for (let amt = 0; amt <= 0.9; amt += 0.05) {
+      const candidate = amt === 0 ? teamColor : tint(teamColor, amt);
+      if (contrastRatio(candidate, panelBg) >= 4.5) return candidate;
+    }
+    return "#FFFFFF";
+  }
+
+  const SHARE_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3v12" stroke="currentColor" stroke-width="2.6" /><path d="M12 3v12" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+    <path d="M7 8l5-5 5 5" stroke="currentColor" stroke-width="2.6" /><path d="M7 8l5-5 5 5" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2.6" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+  </svg>`;
+  const DOWN_ICON = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M6 10l6 6 6-6" stroke="currentColor" stroke-width="2.6" /><path d="M6 10l6 6 6-6" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+  </svg>`;
+
+  // The whole "QB Tiers" franchise is written by one credited author (per
+  // the source article's own byline/schema.org metadata), not rotating
+  // authors like the MLB Power Rankings piece — so the byline lives once in
+  // the page header (see renderHeaderByline below), not repeated per card.
+  const AUTHOR_NAME = "Mike Sando";
+  const AUTHOR_PHOTO = "https://static01.nyt.com/athletic/uploads/wp/2025/09/29085417/sando_mug_2.jpg?width=96&quality=70&auto=webp";
+
+  function shareBtnHTML(index, name) {
+    return `<button type="button" class="pcard-share-btn" data-index="${index}" aria-label="Share ${name}'s QB Tiers card">${SHARE_ICON}</button>`;
+  }
+  function downArrowHTML(index, name) {
+    return `<span class="pcard-down-arrow" data-index="${index}" aria-label="Show more about ${name}">${DOWN_ICON}</span>`;
+  }
+  function factLineHTML(t) {
+    return `<span class="pcard-fact-line">Age ${t.age} &middot; ${t.ht} &middot; ${t.wt} lbs</span>`;
+  }
+
+  // "Spotlight" card — tonal color-blocked hero, format-2 lineage. The
+  // stat-value/label color is a per-card computed tint of the team color
+  // (accentTextColor), not the raw team hex — the panel underneath it is a
+  // darkened shade of that same hue, so the raw color is often too close in
+  // lightness to its own background to read (this was the original bug:
+  // e.g. Steelers/Raiders near-black primaries drawn on an even-darker
+  // shade of themselves). Tinting until it clears WCAG AA keeps the
+  // numerals feeling like "this card's palette," just legible.
+  //
+  // The blurb renders in full (no excerpt/more-toggle) — it simply sits
+  // below the fold inside pcard-body's own scroll area. The down arrow (a
+  // bare icon, not a button) floats over the card as a sibling of
+  // pcard-body, not a descendant, so pcard-body's overflow-y:auto never
+  // clips or scrolls it away, and either scrolls pcard-body to reveal the
+  // blurb or fades out once there's
+  // nothing left below to reveal — see updateDownArrow().
+  function cardHTML(t, index) {
+    const change = tierChange(t.tier, t.prevTier);
+    const panelBg = shade(t.color, 0.55);
+    const accent = accentTextColor(t.color, panelBg);
+    return `
+      <article class="rank-card" style="--card-accent:${t.color}" aria-label="${t.name}, ranked ${t.rank}">
+        <div class="pcard-mat">
+          <div class="pcard-shell">
+            <div class="pcard-photo-zone" style="background:${t.color}">
+              <span class="tier-pill tier-${t.tier}">
+                <span class="shield-shine"></span>
+                <span class="pcard-tier-badge-label">TIER</span>
+                <span class="pcard-tier-badge-value">${t.tier}</span>
+              </span>
+              <img class="pcard-photo" src="${t.photo}" alt="${t.name}" loading="lazy">
+            </div>
+            <div class="pcard-body" style="background:${panelBg}">
+              <div class="pcard-name-row">
+                <h3 class="pcard-name">${t.name}</h3>
+                <button type="button" class="pcard-follow-btn" data-index="${index}" aria-pressed="false" aria-label="Follow ${t.name}">+</button>
+              </div>
+              <span class="pcard-meta">${t.teamFull} &middot; QB</span>
+              <div class="pcard-stats-row">
+                <div>
+                  <span class="pcard-stat-label" style="color:${accent}">TIER</span>
+                  <span class="pcard-stat-value" style="color:${accent}">${t.tier}</span>
+                </div>
+                <div>
+                  <span class="pcard-stat-label" style="color:${accent}">VOTE AVG</span>
+                  <span class="pcard-stat-value" style="color:${accent}">${t.avg}</span>
+                </div>
+                <div>
+                  <span class="pcard-stat-label pcard-change ${change.cls}">VS &apos;24</span>
+                  <span class="pcard-stat-value pcard-change ${change.cls}">${change.label}</span>
+                </div>
+              </div>
+              ${factLineHTML(t)}
+              <blockquote class="pcard-quote">&ldquo;${t.pullquote}&rdquo;${downArrowHTML(index, t.name)}</blockquote>
+              <p class="pcard-blurb">${t.blurb}</p>
+            </div>
+          </div>
+        </div>
+        ${shareBtnHTML(index, t.name)}
+      </article>`;
+  }
+
+  function listRowHTML(t) {
+    const change = tierChange(t.tier, t.prevTier);
+    return `
+      <div class="rankings-list-row">
+        <span class="rlr-rank">${t.rank}</span>
+        <span class="rlr-chg ${change.cls}">${change.label}</span>
+        <span class="rlr-player">
+          <img class="rlr-player-photo" src="${t.photo}" alt="" loading="lazy">
+          <span class="rlr-player-text">
+            <span class="rlr-name">${t.name}</span>
+            <span class="rlr-team">${t.team}</span>
+          </span>
+        </span>
+        <span class="rlr-tier tier-pill tier-${t.tier}">T${t.tier}</span>
+      </div>`;
+  }
+
+  // ---- Render ---------------------------------------------------------
+  const track = document.getElementById("rankingsTrack");
+  track.innerHTML = PLAYERS.map((t, i) => cardHTML(t, i)).join("");
+  document.getElementById("rankingsListRows").innerHTML = PLAYERS.map(listRowHTML).join("");
+
+  // Page-level byline — one credited author for the whole module, built
+  // from the same AUTHOR_NAME/AUTHOR_PHOTO constants used above so there's
+  // one source of truth for his name/headshot.
+  document.getElementById("rankingsByline").innerHTML =
+    `<img class="rankings-byline-photo" src="${AUTHOR_PHOTO}" alt="">
+     <span class="rankings-byline-text">By <strong>${AUTHOR_NAME}</strong></span>`;
+
+  // --- List view's floating share button: opens the share sheet below,
+  // just like teams-power-ranking-card-prototype.html's own "Share" button
+  // does for its My Power Rankings selection. Visibility is driven by an
+  // IntersectionObserver on #rankingsList rather than CSS position:sticky
+  // — see the .is-visible toggle comment on .rankings-list-share-btn for
+  // why sticky's `bottom` offset wasn't actually the right tool for "stay
+  // near the viewport bottom while any part of this tall section is on
+  // screen."
+  const listShareBtn = document.getElementById("listShareBtn");
+  listShareBtn.innerHTML = SHARE_ICON;
+  const listVisibilityObserver = new IntersectionObserver(
+    (entries) => listShareBtn.classList.toggle("is-visible", entries[0].isIntersecting),
+    { threshold: 0 }
+  );
+  listVisibilityObserver.observe(document.getElementById("rankingsList"));
+
+  // --- Share sheet: two static shareable graphics, generated via the
+  // Canvas 2D API — same technique as
+  // teams-power-ranking-card-prototype.html's generateShareGraphic(), but
+  // without any drawImage() of the player headshots or team-branded
+  // assets: static01.nyt.com (where those photos live) sends no
+  // Access-Control-Allow-Origin header, which would taint the canvas and
+  // block toBlob() for every action below. Tier shields are drawn as
+  // native canvas gradients instead, matching the CSS ones exactly, so
+  // nothing here depends on an external image load succeeding.
+  const TIER_GRADIENT_STOPS = {
+    1: [[0, "#FFF6DA"], [0.22, "#F3CB5C"], [0.48, "#B8860B"], [0.55, "#8A6412"], [0.72, "#E8C15A"], [1, "#FFF6DA"]],
+    2: [[0, "#FFFFFF"], [0.22, "#E2E2E2"], [0.48, "#A9A9A9"], [0.55, "#7C7C7C"], [0.72, "#C9C9C9"], [1, "#FFFFFF"]],
+    3: [[0, "#F3D3A8"], [0.22, "#D68E43"], [0.48, "#A85D22"], [0.55, "#7A3F12"], [0.72, "#C97A34"], [1, "#F3D3A8"]],
+    4: [[0, "#EDE4FF"], [0.22, "#B79EF0"], [0.48, "#7C5CC9"], [0.55, "#5A3FA0"], [0.72, "#A688E0"], [1, "#EDE4FF"]],
+    5: [[0, "#D68C8C"], [0.22, "#A83232"], [0.48, "#5C1414"], [0.55, "#3D0A0A"], [0.72, "#7A1F1F"], [1, "#D68C8C"]],
+  };
+  const TIER_TEXT_COLOR = { 1: "#3D2B00", 2: "#2B2B2B", 3: "#3A1D06", 4: "#241249", 5: "#FFEAE6" };
+  const GRAPHIC_W = 1080;
+  const GRAPHIC_HEADER_H = 190;
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function tierGradient(ctx, x, y, w, h, tier) {
+    const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+    TIER_GRADIENT_STOPS[tier].forEach(([offset, color]) => grad.addColorStop(offset, color));
+    return grad;
+  }
+
+  // Shield outline — same 6-point polygon as the CSS clip-path on
+  // .pcard-photo-zone .tier-pill, just drawn as a canvas path instead of a
+  // clip-path, so the "by tier" graphic's shields visually match the cards.
+  function drawShield(ctx, x, y, w, h, tier) {
+    const pts = [[0.5, 0], [1, 0.14], [1, 0.58], [0.5, 1], [0, 0.58], [0, 0.14]]
+      .map(([px, py]) => [x + px * w, y + py * h]);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = tierGradient(ctx, x, y, w, h, tier);
+    ctx.fill();
+    if (tier === 5) {
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = TIER_TEXT_COLOR[tier];
+    ctx.textAlign = "center";
+    ctx.font = "700 22px 'AthleticSans', sans-serif";
+    ctx.fillText("TIER", x + w / 2, y + h * 0.36);
+    ctx.font = "700 60px 'AthleticSlab', serif";
+    ctx.fillText(String(tier), x + w / 2, y + h * 0.36 + 56);
+    ctx.textAlign = "left";
+  }
+
+  // Small rounded pill — matches the compact .tier-pill used in the list
+  // view, for the "full list" graphic's tier column.
+  function drawTierPillSmall(ctx, x, y, w, h, tier) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h / 2);
+    ctx.fillStyle = tierGradient(ctx, x, y, w, h, tier);
+    ctx.fill();
+    if (tier === 5) {
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = TIER_TEXT_COLOR[tier];
+    ctx.textAlign = "center";
+    ctx.font = "700 26px 'AthleticSans', sans-serif";
+    ctx.fillText(`T${tier}`, x + w / 2, y + h / 2 + 9);
+    ctx.textAlign = "left";
+  }
+
+  // Greedily packs names into comma-separated lines no wider than
+  // maxWidth — used for each tier's quarterback list in the "by tier"
+  // graphic, since tiers 2 and 3 have too many names to fit on one line.
+  function wrapCommaList(ctx, items, maxWidth) {
+    const lines = [];
+    let line = "";
+    items.forEach((name, i) => {
+      const token = name + (i < items.length - 1 ? ", " : "");
+      if (line && ctx.measureText(line + token).width > maxWidth) {
+        lines.push(line.trimEnd());
+        line = token;
+      } else {
+        line += token;
+      }
+    });
+    if (line) lines.push(line.trimEnd());
+    return lines;
+  }
+
+  // Header block — wordmark + title + byline, drawn on Core Green,
+  // matching .rankings-list-titlebar's own look so the saved/shared image
+  // carries the same title it has in the collapsed list, not just in the
+  // share sheet's surrounding (non-exported) HTML chrome.
+  async function drawGraphicHeader(ctx) {
+    ctx.fillStyle = "#15332D";
+    ctx.fillRect(0, 0, GRAPHIC_W, GRAPHIC_HEADER_H);
+    try {
+      const wordmark = await loadImage("Assets/iOS/iOS/Brand%20wordmark.svg");
+      const wmW = 170;
+      const wmH = wmW * (wordmark.height / wordmark.width);
+      ctx.drawImage(wordmark, (GRAPHIC_W - wmW) / 2, 32, wmW, wmH);
+    } catch (e) {}
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.font = "700 50px 'AthleticSlab', serif";
+    ctx.fillText("NFL QB Tiers", GRAPHIC_W / 2, 130);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+    ctx.font = "italic 500 24px 'AthleticSerif', serif";
+    ctx.fillText("50 coaches and executives, surveyed anonymously", GRAPHIC_W / 2, 168);
+    ctx.textAlign = "left";
+  }
+
+  function drawGraphicFooter(ctx, W, H, footerH) {
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    ctx.fillStyle = "#323232";
+    ctx.fillRect(0, H - footerH, W, footerH);
+    ctx.fillStyle = "#969693";
+    ctx.font = "500 22px 'AthleticSans', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("THE ATHLETIC  ·  " + today, W / 2, H - footerH / 2 + 8);
+    ctx.textAlign = "left";
+  }
+
+  // "By Tier" — shield on the left, that tier's quarterbacks listed on the
+  // right. Section heights are measured in a first pass (since tiers 2 and
+  // 3 have enough names to wrap to multiple lines) before the real,
+  // correctly-sized canvas is created.
+  async function generateTierGraphic() {
+    await document.fonts.ready;
+    const byTier = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    PLAYERS.forEach((p) => byTier[p.tier].push(p.name));
+
+    const leftColW = 260;
+    const namesX = leftColW + 40;
+    const namesMaxWidth = GRAPHIC_W - namesX - 60;
+    const lineH = 46;
+    const shieldH = 200;
+    const sectionPadY = 44;
+    const footerH = 70;
+
+    const measure = document.createElement("canvas").getContext("2d");
+    measure.font = "500 32px 'AthleticSans', sans-serif";
+    const tierLines = {};
+    let bodyH = 0;
+    [1, 2, 3, 4, 5].forEach((tier) => {
+      const lines = wrapCommaList(measure, byTier[tier], namesMaxWidth);
+      tierLines[tier] = lines;
+      bodyH += Math.max(shieldH, lines.length * lineH) + sectionPadY;
+    });
+
+    const H = GRAPHIC_HEADER_H + bodyH + footerH;
+    const canvas = document.createElement("canvas");
+    canvas.width = GRAPHIC_W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#121212";
+    ctx.fillRect(0, 0, GRAPHIC_W, H);
+    await drawGraphicHeader(ctx);
+
+    let y = GRAPHIC_HEADER_H;
+    [1, 2, 3, 4, 5].forEach((tier) => {
+      const lines = tierLines[tier];
+      const namesH = lines.length * lineH;
+      const sectionH = Math.max(shieldH, namesH) + sectionPadY;
+
+      if (tier > 1) {
+        ctx.strokeStyle = "#323232";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(GRAPHIC_W - 40, y);
+        ctx.stroke();
+      }
+
+      drawShield(ctx, 60, y + (sectionH - shieldH) / 2, 170, shieldH, tier);
+
+      ctx.fillStyle = "#F0F0EE";
+      ctx.font = "500 32px 'AthleticSans', sans-serif";
+      const namesY = y + (sectionH - namesH) / 2 + lineH * 0.72;
+      lines.forEach((line, i) => ctx.fillText(line, namesX, namesY + i * lineH));
+
+      y += sectionH;
+    });
+
+    drawGraphicFooter(ctx, GRAPHIC_W, H, footerH);
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  // "Full List" — same Rank/Chg/Quarterback/Tier columns as the collapsed
+  // list view, all 34 rows.
+  async function generateFullListGraphic() {
+    await document.fonts.ready;
+    const rowH = 84, footerH = 70;
+    const H = GRAPHIC_HEADER_H + PLAYERS.length * rowH + footerH;
+    const canvas = document.createElement("canvas");
+    canvas.width = GRAPHIC_W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#121212";
+    ctx.fillRect(0, 0, GRAPHIC_W, H);
+    await drawGraphicHeader(ctx);
+
+    const changeColor = { up: "#2ECC58", down: "#FF3B30", steady: "#969693", new: "#F0F0EE" };
+    PLAYERS.forEach((t, i) => {
+      const y = GRAPHIC_HEADER_H + i * rowH;
+      ctx.fillStyle = i % 2 === 0 ? "#171717" : "#121212";
+      ctx.fillRect(0, y, GRAPHIC_W, rowH);
+
+      const change = tierChange(t.tier, t.prevTier);
+      ctx.fillStyle = "#F0F0EE";
+      ctx.font = "700 30px 'AthleticSlab', serif";
+      ctx.textAlign = "right";
+      ctx.fillText(t.rank, 96, y + rowH / 2 + 10);
+      ctx.textAlign = "left";
+
+      ctx.fillStyle = changeColor[change.cls];
+      ctx.font = "600 22px 'AthleticSans', sans-serif";
+      ctx.fillText(change.label, 128, y + rowH / 2 + 8);
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "700 28px 'AthleticSlab', serif";
+      ctx.fillText(t.name, 300, y + rowH / 2 - 4);
+      ctx.fillStyle = "#969693";
+      ctx.font = "500 20px 'AthleticSans', sans-serif";
+      ctx.fillText(t.teamFull, 300, y + rowH / 2 + 26);
+
+      drawTierPillSmall(ctx, GRAPHIC_W - 140, y + rowH / 2 - 24, 80, 48, t.tier);
+    });
+
+    drawGraphicFooter(ctx, GRAPHIC_W, H, footerH);
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  // --- Share sheet wiring: same open/close/preview/action pattern as
+  // teams-power-ranking-card-prototype.html, plus the left/right toggle
+  // between the two graphics above.
+  const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3v11" stroke="currentColor" stroke-width="2.4" /><path d="M12 3v11" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+    <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.4" /><path d="M7 10l5 5 5-5" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+    <path d="M5 19h14" stroke="currentColor" stroke-width="2.4" /><path d="M5 19h14" stroke="rgba(0,0,0,0.5)" stroke-width="0.9" />
+  </svg>`;
+  const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" /><rect x="8" y="8" width="12" height="12" rx="2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+  </svg>`;
+  const MESSAGE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M4 5.5A2 2 0 0 1 6 3.5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-7l-4 3.5v-3.5H6a2 2 0 0 1-2-2v-10Z" stroke="currentColor" stroke-width="1.8" /><path d="M4 5.5A2 2 0 0 1 6 3.5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-7l-4 3.5v-3.5H6a2 2 0 0 1-2-2v-10Z" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+  </svg>`;
+  const WHATSAPP_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.2-1.1A8.5 8.5 0 1 0 12 3.5Z" stroke="currentColor" stroke-width="1.8" /><path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.2-1.1A8.5 8.5 0 1 0 12 3.5Z" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <path d="M8.8 8.4c.3-.6 1-.5 1.4.1.4.6.7 1.1.3 1.7-.5.7-1 .5-.6 1.3.5 1 1.5 2 2.5 2.4.7.3.6-.3 1.2-.7.6-.4 1 0 1.6.4.5.4.9.6.4 1.3-.6.8-1.9 1-3 .5-1.5-.6-3.3-2.3-4-3.7-.5-.9-.4-2.3.2-3.3Z" fill="currentColor" />
+  </svg>`;
+  const INSTAGRAM_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" stroke-width="1.8" /><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8" /><circle cx="12" cy="12" r="4.2" stroke="rgba(0,0,0,0.5)" stroke-width="0.7" />
+    <circle cx="16.6" cy="7.4" r="1.1" fill="currentColor" />
+  </svg>`;
+  document.getElementById("shareSaveIcon").innerHTML = DOWNLOAD_ICON;
+  document.getElementById("shareCopyIcon").innerHTML = COPY_ICON;
+  document.getElementById("shareMessageIcon").innerHTML = MESSAGE_ICON;
+  document.getElementById("shareWhatsappIcon").innerHTML = WHATSAPP_ICON;
+  document.getElementById("shareInstagramIcon").innerHTML = INSTAGRAM_ICON;
+
+  const shareSheetOverlay = document.getElementById("shareSheetOverlay");
+  const shareSheetClose = document.getElementById("shareSheetClose");
+  const shareSheetPreviewImg = document.getElementById("shareSheetPreviewImg");
+  const shareSheetLoading = document.getElementById("shareSheetLoading");
+  const shareGraphicToggleBtns = document.querySelectorAll(".share-sheet-toggle-btn");
+  const shareSaveBtn = document.getElementById("shareSaveBtn");
+  const shareCopyBtn = document.getElementById("shareCopyBtn");
+  const shareMessageBtn = document.getElementById("shareMessageBtn");
+  const shareWhatsappBtn = document.getElementById("shareWhatsappBtn");
+  const shareInstagramBtn = document.getElementById("shareInstagramBtn");
+
+  if (!(navigator.clipboard && window.ClipboardItem)) shareCopyBtn.hidden = true;
+
+  let shareSheetBlob = null;
+  let shareSheetPreviewURL = null;
+  let activeGraphicMode = "tier";
+
+  function closeShareSheet() {
+    shareSheetOverlay.hidden = true;
+  }
+
+  async function renderSharePreview() {
+    shareSheetPreviewImg.hidden = true;
+    shareSheetLoading.hidden = false;
+    shareSheetLoading.textContent = "Generating preview…";
+    try {
+      shareSheetBlob = activeGraphicMode === "tier" ? await generateTierGraphic() : await generateFullListGraphic();
+      if (shareSheetPreviewURL) URL.revokeObjectURL(shareSheetPreviewURL);
+      shareSheetPreviewURL = URL.createObjectURL(shareSheetBlob);
+      shareSheetPreviewImg.src = shareSheetPreviewURL;
+      shareSheetLoading.hidden = true;
+      shareSheetPreviewImg.hidden = false;
+    } catch (e) {
+      console.error(e);
+      shareSheetLoading.textContent = "Couldn't generate a preview.";
+    }
+  }
+
+  async function openShareSheet() {
+    shareSheetOverlay.hidden = false;
+    shareSheetBlob = null;
+    activeGraphicMode = "tier";
+    shareGraphicToggleBtns.forEach((b) => {
+      const isTier = b.dataset.graphic === "tier";
+      b.classList.toggle("active", isTier);
+      b.setAttribute("aria-pressed", String(isTier));
+    });
+    await renderSharePreview();
+  }
+
+  shareGraphicToggleBtns.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (btn.classList.contains("active")) return;
+      activeGraphicMode = btn.dataset.graphic;
+      shareGraphicToggleBtns.forEach((b) => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-pressed", String(b === btn));
+      });
+      await renderSharePreview();
+    });
+  });
+
+  listShareBtn.addEventListener("click", openShareSheet);
+  shareSheetClose.addEventListener("click", closeShareSheet);
+  shareSheetOverlay.addEventListener("click", (e) => {
+    if (e.target === shareSheetOverlay) closeShareSheet();
+  });
+
+  shareCopyBtn.addEventListener("click", async () => {
+    if (!shareSheetBlob) return;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ [shareSheetBlob.type]: shareSheetBlob })]);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  function downloadShareBlob() {
+    if (!shareSheetBlob) return;
+    const url = URL.createObjectURL(shareSheetBlob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "nfl-qb-tiers.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function shareToDestination() {
+    if (!shareSheetBlob) return;
+    const file = new File([shareSheetBlob], "nfl-qb-tiers.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "NFL QB Tiers" });
+        return;
+      } catch (e) {
+        return;
+      }
+    }
+    downloadShareBlob();
+  }
+
+  shareSaveBtn.addEventListener("click", downloadShareBlob);
+  shareMessageBtn.addEventListener("click", shareToDestination);
+  shareWhatsappBtn.addEventListener("click", shareToDestination);
+  shareInstagramBtn.addEventListener("click", shareToDestination);
+
+  // --- Card view / list view toggle ---------------------------------------
+  const cardsRow = document.getElementById("rankingsRow");
+  const listView = document.getElementById("rankingsList");
+  const swipeHint = document.getElementById("rankSwipeHint");
+  const cardsBtn = document.getElementById("viewToggleCards");
+  const listBtn = document.getElementById("viewToggleList");
+
+  function setView(view) {
+    const isList = view === "list";
+    listView.hidden = !isList;
+    cardsRow.hidden = isList;
+    swipeHint.hidden = isList;
+    document.getElementById("rankCounter").hidden = isList;
+    cardsBtn.classList.toggle("active", !isList);
+    listBtn.classList.toggle("active", isList);
+    cardsBtn.setAttribute("aria-pressed", String(!isList));
+    listBtn.setAttribute("aria-pressed", String(isList));
+  }
+  cardsBtn.addEventListener("click", () => setView("cards"));
+  listBtn.addEventListener("click", () => setView("list"));
+
+  // --- Share button: native share sheet where available, else a copyable
+  // fallback message. Delegated so one listener covers all 34 cards.
+  track.addEventListener("click", (e) => {
+    const btn = e.target.closest(".pcard-share-btn");
+    if (!btn) return;
+    const t = PLAYERS[Number(btn.dataset.index)];
+    const shareData = {
+      title: "NFL QB Tiers",
+      text: `${t.name} — Tier ${t.tier} in this year's NFL QB Tiers (No. ${t.rank} overall).`,
+      url: location.href,
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else {
+      alert(`Share "${t.name}" via Messages, social media, or copy link:\n${shareData.text}`);
+    }
+  });
+
+  // --- Follow: one click to follow/unfollow the player, right from the
+  // card. Same toggle pattern as .rank-follow-btn in
+  // teams-power-ranking-card-prototype.html.
+  track.addEventListener("click", (e) => {
+    const followBtn = e.target.closest(".pcard-follow-btn");
+    if (!followBtn) return;
+    const t = PLAYERS[Number(followBtn.dataset.index)];
+    const nowFollowing = !followBtn.classList.contains("is-following");
+    followBtn.classList.toggle("is-following", nowFollowing);
+    followBtn.textContent = nowFollowing ? "✓" : "+";
+    followBtn.setAttribute("aria-pressed", String(nowFollowing));
+    followBtn.setAttribute("aria-label", `${nowFollowing ? "Unfollow" : "Follow"} ${t.name}`);
+  });
+
+  // --- Down arrow: click scrolls pcard-body just far enough to bring the
+  // blurb's own top edge into view (the "beginning of the description"),
+  // not all the way to the bottom of it. It sits in-flow right under the
+  // quote now (not floating over the card), so scrolling the body carries
+  // it out of view naturally once the user scrolls past it — no scroll-
+  // linked visibility toggle needed. It just stays hidden up front on the
+  // rare card where the body never overflows at all (nothing to reveal).
+  function blurbScrollTarget(body, blurb) {
+    // getBoundingClientRect-relative offset rather than blurb.offsetTop:
+    // pcard-body isn't a positioned ancestor, so offsetTop would resolve
+    // against .rank-card instead and be wrong here.
+    return blurb.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  }
+  function updateDownArrow(card) {
+    const body = card.querySelector(".pcard-body");
+    const arrow = card.querySelector(".pcard-down-arrow");
+    if (!body || !arrow) return;
+    const hasMore = body.scrollHeight > body.clientHeight + 4;
+    arrow.classList.toggle("is-hidden", !hasMore);
+  }
+  function updateAllDownArrows() {
+    track.querySelectorAll(".rank-card").forEach(updateDownArrow);
+  }
+
+  track.addEventListener("click", (e) => {
+    const arrow = e.target.closest(".pcard-down-arrow");
+    if (!arrow) return;
+    const card = arrow.closest(".rank-card");
+    const body = card.querySelector(".pcard-body");
+    const blurb = card.querySelector(".pcard-blurb");
+    body.scrollTo({ top: blurbScrollTarget(body, blurb), behavior: reduceMotion ? "auto" : "smooth" });
+  });
+  updateAllDownArrows();
+  window.addEventListener("resize", updateAllDownArrows);
+
+  // --- Edge fades + "N / 34" position counter, synced to scroll --------
+  const row = document.getElementById("rankingsRow");
+  const counter = document.getElementById("rankCounter");
+
+  function getStep() {
+    const firstCard = track.querySelector(".rank-card");
+    if (!firstCard) return 1;
+    const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
+    // offsetWidth, not getBoundingClientRect().width — the latter reflects
+    // applyCarouselMotion's cosmetic transform:scale() on non-active cards,
+    // so once card 0 (always the one this measures) scrolls out of focus
+    // and shrinks, every step computed from it undershoots, and both the
+    // "N / 34" counter and the active-card index (which is what the
+    // shine-on-swipe animation keys off) drift wrong for most of the list.
+    // offsetWidth is the untransformed layout box, immune to that.
+    return firstCard.offsetWidth + gap;
+  }
+
+  function onScroll() {
+    const atStart = track.scrollLeft <= 4;
+    const atEnd = track.scrollLeft >= track.scrollWidth - track.clientWidth - 4;
+    row.classList.toggle("is-scrolled", !atStart);
+    row.classList.toggle("is-at-end", atEnd);
+
+    const step = getStep();
+    const index = Math.min(
+      PLAYERS.length - 1,
+      Math.max(0, Math.round(track.scrollLeft / step))
+    );
+    counter.textContent = `${index + 1} / ${PLAYERS.length}`;
+  }
+
+  track.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  onScroll();
+
+  // --- Carousel motion: depth effect tied to scroll position --------------
+  // The card nearest the track's visual center sits at full size/opacity;
+  // cards further away scale down and dim slightly. Same pattern as
+  // teams-power-ranking-card-prototype.html.
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let rafPending = false;
+
+  function applyCarouselMotion() {
+    rafPending = false;
+    const cards = track.querySelectorAll(".rank-card");
+    if (reduceMotion) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const trackCenter = trackRect.left + trackRect.width / 2;
+    const cardWidth = cards[0] ? cards[0].getBoundingClientRect().width : 1;
+    // Same step-based index math as onScroll's "N / 34" counter — reused
+    // here rather than a centeredness-float threshold, since
+    // scroll-snap-align:start means a card's true center never lands
+    // exactly on the track's visual center, so a fuzzy threshold would
+    // either never fire or fire on more than one card depending on exactly
+    // where the snap settles.
+    const activeIndex = Math.min(cards.length - 1, Math.max(0, Math.round(track.scrollLeft / getStep())));
+
+    cards.forEach((card, i) => {
+      const rect = card.getBoundingClientRect();
+      const cardCenter = rect.left + rect.width / 2;
+      const ratio = (cardCenter - trackCenter) / cardWidth;
+      const clamped = Math.max(-1.4, Math.min(1.4, ratio));
+      const centeredness = 1 - Math.min(Math.abs(clamped), 1);
+
+      card.classList.toggle("is-active", i === activeIndex);
+
+      const scale = 1 - 0.08 * (1 - centeredness);
+      const opacity = 1 - 0.35 * (1 - centeredness);
+      card.style.transform = `scale(${scale})`;
+      card.style.opacity = String(opacity);
+
+      // The accent ring itself now lives permanently in .rank-card's own
+      // diagonal-stripe background (see the card-frame comment above), so
+      // this only needs to add the bright glint at dead center on top of
+      // the base drop shadow, not redeclare the accent ring too.
+      const glow = 0.7 * centeredness;
+      card.style.boxShadow =
+        `0 0 0 3px rgba(255, 255, 255, ${glow.toFixed(2)}), ` +
+        `0 8px 18px rgba(0, 0, 0, 0.4)`;
+    });
+  }
+
+  function scheduleApplyCarouselMotion() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(applyCarouselMotion);
+  }
+
+  track.addEventListener("scroll", scheduleApplyCarouselMotion, { passive: true });
+  window.addEventListener("resize", scheduleApplyCarouselMotion);
+  applyCarouselMotion();
+
+  // --- Scroll-snap settle correction --------------------------------------
+  // CSS scroll-snap-type alone lands reliably on desktop (mouse-wheel/
+  // trackpad scrolling), but on mobile Safari/Chrome a touch-fling can
+  // leave the track dozens of pixels short of the true snap point — partly
+  // because applyCarouselMotion() above mutates transform/opacity/box-shadow
+  // on every card on every scroll frame, and that per-frame main-thread
+  // work is enough to throw off mobile WebKit's native fling+snap physics,
+  // even though it's invisible on desktop. Rather than trust the browser to
+  // land exactly on a card, explicitly correct to the nearest one a moment
+  // after scrolling stops. On desktop, where the browser already landed
+  // correctly, this is a no-op (the 1px threshold below never fires).
+  let settleTimer = null;
+  function scheduleSettle() {
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      const step = getStep();
+      const index = Math.min(PLAYERS.length - 1, Math.max(0, Math.round(track.scrollLeft / step)));
+      const target = index * step;
+      if (Math.abs(track.scrollLeft - target) > 1) {
+        track.scrollTo({ left: target, behavior: reduceMotion ? "auto" : "smooth" });
+      }
+    }, 120);
+  }
+  track.addEventListener("scroll", scheduleSettle, { passive: true });
+</script>
+
+</body>
+</html>
