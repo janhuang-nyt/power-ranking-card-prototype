@@ -469,6 +469,27 @@
     color: #000000;
   }
   .rank-corner-value.is-tied { font-size: 27px; top: 10px; left: 6px; }
+  /* Metal-like shine sweeping across the corner wedge as the card swipes
+     toward center — clipped to the same triangle as .rank-corner, with dark
+     edges on either side of the bright band so it reads as light catching a
+     metal edge rather than a flat white smear. Position driven by JS
+     (background-position, tied to scroll — see applyCarouselMotion). */
+  .rank-corner-shine {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    background: linear-gradient(115deg,
+      transparent 22%,
+      rgba(0, 0, 0, 0.1) 36%,
+      rgba(255, 255, 255, 0.98) 48%,
+      rgba(255, 255, 255, 0.98) 54%,
+      rgba(0, 0, 0, 0.1) 64%,
+      transparent 78%);
+    background-size: 260% 260%;
+    background-repeat: no-repeat;
+    background-position: 150% 150%;
+    pointer-events: none;
+  }
   .rank-name-block { min-width: 0; }
   .rank-team-name {
     margin: 0;
@@ -570,7 +591,10 @@
   }
   /* One-click "follow this team" — half-overlaid on the logo circle like a
      notification badge, so it reads as an action stuck onto the graphic
-     rather than a layout element. */
+     rather than a layout element. Liquid Glass, dark-tinted: it sits over a
+     team logo of unpredictable color/brightness, and the guidance calls for
+     a dark dimming layer under glass over bright/varied content so the
+     white "+" stays legible no matter what team it's on. */
   .rank-follow-btn {
     position: absolute;
     bottom: -2px;
@@ -578,9 +602,14 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    border: 2px solid var(--gray-200);
-    background: var(--gray-800);
-    color: var(--gray-100);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px) saturate(160%);
+    -webkit-backdrop-filter: blur(6px) saturate(160%);
+    color: var(--gray-800);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 1px 4px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -590,11 +619,16 @@
     font-size: 11px;
     line-height: 1;
     cursor: pointer;
+    transition: background 0.15s ease;
   }
+  .rank-follow-btn:hover { background: rgba(0, 0, 0, 0.62); }
+  .rank-follow-btn:active { background: rgba(0, 0, 0, 0.7); }
   .rank-follow-btn.is-following {
-    background: var(--bright-green);
+    background: rgba(46, 204, 88, 0.55);
+    border-color: rgba(255, 255, 255, 0.4);
     color: #FFFFFF;
   }
+  .rank-follow-btn.is-following:hover { background: rgba(46, 204, 88, 0.68); }
   .rank-icon-circle img {
     width: 100%;
     height: 100%;
@@ -801,6 +835,8 @@
     padding: 14px 14px 10px;
     border-bottom: 1px solid var(--gray-300);
   }
+  /* Liquid Glass, light-tinted — the modal behind it is dark, same context
+     as .rank-share-btn, so it uses the same light/blurred recipe. */
   .myrank-close {
     flex: 0 0 30px;
     width: 30px;
@@ -808,12 +844,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 50%;
-    background: var(--gray-300);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
     color: var(--gray-800);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
     cursor: pointer;
+    transition: background 0.15s ease;
   }
+  .myrank-close:hover { background: rgba(255, 255, 255, 0.18); }
+  .myrank-close:active { background: rgba(255, 255, 255, 0.26); }
   .myrank-modal-title {
     font-family: var(--font-slab-bold);
     font-weight: 700;
@@ -913,10 +955,15 @@
   .myrank-saved-note {
     margin: 0 4px 0 0;
     font-family: var(--font-franklin);
-    font-weight: 600;
+    font-weight: 400;
     font-size: 11px;
     color: var(--bright-green);
     white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .myrank-saved-note { transition: none; }
   }
   .myrank-share-btn {
     flex: 0 0 auto;
@@ -926,7 +973,6 @@
     font-weight: 700;
     font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   }
   .myrank-reset-btn {
     flex: 0 0 auto;
@@ -943,12 +989,24 @@
     cursor: pointer;
   }
   /* Muted green (less saturated than --bright-green) — the only action
-     needed now that reordering auto-saves; no separate Save button. */
+     needed now that reordering auto-saves; no separate Save button. Liquid
+     Glass "stained glass" treatment, per Apple's own guidance to apply
+     color as a tinted glass fill specifically for primary CTAs — kept at
+     high opacity (not the near-clear look on .rank-share-btn) so the near-
+     black label stays legible regardless of what's behind the modal. */
   .myrank-share-btn {
-    border: 1px solid var(--accent-green);
-    background: var(--accent-green);
+    border: 1px solid rgba(78, 171, 117, 0.7);
+    background: rgba(78, 171, 117, 0.82);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
     color: #06210F;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: background 0.15s ease;
   }
+  .myrank-share-btn:hover { background: rgba(78, 171, 117, 0.92); }
+  .myrank-share-btn:active { background: rgba(78, 171, 117, 1); }
 
   /* ============ Share sheet ============ */
   /* A bottom sheet (not a centered lightbox like the My Power Rankings
@@ -997,6 +1055,10 @@
     font-size: 17px;
     color: var(--gray-100);
   }
+  /* Liquid Glass, dark-tinted — the sheet behind it is white/light, the
+     opposite context from .rank-share-btn, so the material adapts the same
+     way Apple's guidance describes: light glass on dark surfaces, dark
+     glass on light ones. */
   .share-sheet-close {
     flex: 0 0 30px;
     width: 30px;
@@ -1004,12 +1066,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 50%;
-    background: var(--gray-700);
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
     color: var(--gray-200);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     cursor: pointer;
+    transition: background 0.15s ease;
   }
+  .share-sheet-close:hover { background: rgba(0, 0, 0, 0.09); }
+  .share-sheet-close:active { background: rgba(0, 0, 0, 0.13); }
   .share-sheet-preview {
     flex: 0 1 auto;
     min-height: 0;
@@ -1112,16 +1180,25 @@
     cursor: pointer;
   }
   .share-sheet-action[hidden] { display: none; }
+  /* Liquid Glass, dark-tinted — same light-sheet context as
+     .share-sheet-close, so it uses the same recipe. */
   .share-sheet-action-icon {
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background: var(--gray-700);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--gray-200);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: background 0.15s ease;
   }
+  .share-sheet-action:hover .share-sheet-action-icon { background: rgba(0, 0, 0, 0.09); }
+  .share-sheet-action:active .share-sheet-action-icon { background: rgba(0, 0, 0, 0.13); }
   .share-sheet-action-icon svg { width: 19px; height: 19px; }
   .share-sheet-action-label {
     font-family: var(--font-franklin);
@@ -1223,7 +1300,7 @@
               <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.4" /><line x1="19" y1="5" x2="5" y2="19" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
             </svg>
           </button>
-          <span class="myrank-modal-title">My Power Rankings</span>
+          <span class="myrank-modal-title">My MLB Power Rankings</span>
           <span class="myrank-modal-spacer"></span>
         </div>
         <p class="myrank-instructions">Drag teams to rank them first to worst. Your list saves automatically.</p>
@@ -1444,6 +1521,7 @@
       <article class="rank-card" style="--card-accent:${t.color}" aria-label="${t.team}, ranked ${t.rank}">
         <span class="rank-corner">
           <span class="rank-corner-value${String(t.rank).length > 2 ? " is-tied" : ""}">${t.rank}</span>
+          <span class="rank-corner-shine"></span>
         </span>
         <div class="rank-card-top" style="background:${t.color}; color:${textColor}">
           <div class="rank-name-block">
@@ -1618,6 +1696,66 @@
   window.addEventListener("resize", onScroll);
   onScroll();
 
+  // --- Carousel motion: depth + shine, tied to scroll position -----------
+  // The card nearest the track's visible center sits at full size/opacity;
+  // cards moving away scale down and fade slightly (depth), a metal-like
+  // highlight sweeps across the corner wedge as a card approaches center
+  // (shine), and the card's accent border glints brighter the closer it
+  // gets to dead center. All driven by distance-from-center on every
+  // scroll/resize; skipped entirely under prefers-reduced-motion.
+  (function () {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let rafPending = false;
+
+    function applyCarouselMotion() {
+      rafPending = false;
+      const cards = track.querySelectorAll(".rank-card");
+      if (reduceMotion) return;
+
+      const trackRect = track.getBoundingClientRect();
+      const trackCenter = trackRect.left + trackRect.width / 2;
+      const cardWidth = cards[0] ? cards[0].getBoundingClientRect().width : 1;
+
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.left + rect.width / 2;
+        const ratio = (cardCenter - trackCenter) / cardWidth; // ~0 at center, ~±1 one card away
+        const clamped = Math.max(-1.4, Math.min(1.4, ratio));
+        const centeredness = 1 - Math.min(Math.abs(clamped), 1); // 1 at dead center, 0 a card away
+
+        // Depth
+        const scale = 1 - 0.08 * (1 - centeredness);
+        const opacity = 1 - 0.35 * (1 - centeredness);
+        card.style.transform = `scale(${scale})`;
+        card.style.opacity = String(opacity);
+
+        // Shine — corner-wedge highlight sweep, tracks swipe direction
+        const shine = card.querySelector(".rank-corner-shine");
+        if (shine) {
+          const shinePos = 50 + clamped * 70;
+          shine.style.backgroundPosition = `${shinePos}% ${shinePos}%`;
+        }
+
+        // Shine — border glint, brightest at dead center
+        const glow = 0.7 * centeredness;
+        card.style.boxShadow =
+          `0 0 0 3px rgba(255, 255, 255, ${glow.toFixed(2)}), ` +
+          `0 0 0 3px var(--card-accent, var(--gray-300)), ` +
+          `0 8px 18px rgba(0, 0, 0, 0.4)`;
+      });
+    }
+
+    function scheduleApplyCarouselMotion() {
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(applyCarouselMotion);
+    }
+
+    track.addEventListener("scroll", scheduleApplyCarouselMotion, { passive: true });
+    window.addEventListener("resize", scheduleApplyCarouselMotion);
+    applyCarouselMotion();
+  })();
+
   // --- "My Power Rankings": drag-to-reorder tool --------------------------
   const GRIP_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
     <line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="6" x2="16" y2="6" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
@@ -1650,20 +1788,44 @@
 
   // No Save button — reordering auto-saves. The "Saved" note is debounced:
   // it hides the instant a change is made and only reappears once the user
-  // pauses for a beat, so it reads as "saved" rather than flickering on
-  // every single row swap mid-drag.
-  const SAVE_DEBOUNCE_MS = 800;
+  // has genuinely stopped for a few seconds, so a string of quick successive
+  // drags reads as one save at the end, not a note blinking on and off after
+  // every single row swap. Once shown, it fades out on its own after a few
+  // seconds — it's a quiet confirmation, not a persistent status.
+  const SAVE_DEBOUNCE_MS = 2400;
+  const SAVED_NOTE_VISIBLE_MS = 2200;
+  const SAVED_NOTE_FADE_MS = 500; // keep in sync with the CSS transition duration
   let mySaveTimer = null;
+  let mySavedNoteFadeTimer = null;
+  let mySavedNoteHideTimer = null;
+
+  function hideSavedNoteImmediately() {
+    if (mySavedNoteFadeTimer) { clearTimeout(mySavedNoteFadeTimer); mySavedNoteFadeTimer = null; }
+    if (mySavedNoteHideTimer) { clearTimeout(mySavedNoteHideTimer); mySavedNoteHideTimer = null; }
+    myRankSavedNote.hidden = true;
+    myRankSavedNote.style.opacity = "";
+  }
+
+  function showSavedNoteThenFade() {
+    myRankSavedNote.hidden = false;
+    myRankSavedNote.style.opacity = "1";
+    mySavedNoteFadeTimer = setTimeout(() => {
+      myRankSavedNote.style.opacity = "0";
+      mySavedNoteHideTimer = setTimeout(() => {
+        myRankSavedNote.hidden = true;
+      }, SAVED_NOTE_FADE_MS);
+    }, SAVED_NOTE_VISIBLE_MS);
+  }
 
   function scheduleAutoSave() {
-    myRankSavedNote.hidden = true;
+    hideSavedNoteImmediately();
     if (mySaveTimer) clearTimeout(mySaveTimer);
     mySaveTimer = setTimeout(() => {
       try {
         localStorage.setItem(MYRANK_STORAGE_KEY, JSON.stringify(myRankOrder));
       } catch (e) {}
-      myRankSavedNote.hidden = false;
       mySaveTimer = null;
+      showSavedNoteThenFade();
     }, SAVE_DEBOUNCE_MS);
   }
   function cancelPendingSave() {
@@ -1671,7 +1833,7 @@
       clearTimeout(mySaveTimer);
       mySaveTimer = null;
     }
-    myRankSavedNote.hidden = true;
+    hideSavedNoteImmediately();
   }
 
   function myRankRowHTML(teamIndex, position) {
