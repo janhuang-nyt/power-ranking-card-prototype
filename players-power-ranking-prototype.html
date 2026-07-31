@@ -350,6 +350,152 @@
     font-size: 13px;
   }
 
+  /* =====================================================================
+     "My QB Power Rankings" — drag-to-reorder tool, ported from
+     teams-power-ranking-card-prototype.html's own "My Power Rankings"
+     (same drag mechanics, auto-save, and share pattern) but rendered as an
+     always-visible card in the feed rather than a link-triggered modal.
+     ===================================================================== */
+  .myqb-module { padding: 4px 0 28px; }
+  .myqb-title {
+    margin: 0;
+    padding: 0 16px;
+    font-family: var(--font-slab);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--gray-800);
+  }
+  .myqb-instructions {
+    margin: 6px 0 14px;
+    padding: 0 16px;
+    font-family: var(--font-imperial);
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--gray-600);
+  }
+  /* Header + rows share one grid so columns line up exactly: handle, rank,
+     team logo, name (flex), then the three fixed reference stats. */
+  .myqb-list-header,
+  .myqb-row {
+    display: grid;
+    grid-template-columns: 22px 24px 24px 1fr 30px 30px 30px;
+    align-items: center;
+    gap: 6px;
+  }
+  .myqb-list-header {
+    padding: 0 16px 6px;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 9.5px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--gray-500);
+  }
+  .myqb-list-header span:nth-child(n+5) { text-align: right; }
+  .myqb-list { margin: 0 16px; background: var(--gray-200); border: 1px solid var(--gray-300); border-radius: 16px; padding: 4px 0; }
+  .myqb-row {
+    padding: 7px 14px;
+    border-top: 1px solid var(--gray-300);
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+  }
+  .myqb-list .myqb-row:first-child { border-top: none; }
+  .myqb-row.is-dragging {
+    background: var(--gray-300);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    border-radius: 10px;
+    position: relative;
+    z-index: 2;
+    opacity: 0.96;
+  }
+  .myqb-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-500);
+    cursor: grab;
+  }
+  .myqb-rank {
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--gray-800);
+    text-align: center;
+  }
+  .myqb-logo { display: block; width: 22px; height: 22px; object-fit: contain; }
+  .myqb-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-slab-bold);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gray-800);
+  }
+  .myqb-stat {
+    text-align: right;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--gray-600);
+  }
+  /* Always visible (not gated behind "first drag" like the teams modal —
+     there's no modal chrome here framing this as a hidden tool, and
+     sharing today's default order is a valid first action too). */
+  .myqb-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 0 16px;
+  }
+  .myqb-saved-note {
+    margin-right: auto;
+    font-family: var(--font-franklin);
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--bright-green);
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .myqb-saved-note { transition: none; }
+  }
+  .myqb-reset-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--gray-500);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  /* Same muted-green Liquid Glass "stained glass" CTA treatment as
+     .myrank-share-btn in teams-power-ranking-card-prototype.html. */
+  .myqb-share-btn {
+    border: 1px solid rgba(78, 171, 117, 0.7);
+    background: rgba(78, 171, 117, 0.82);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-family: var(--font-franklin);
+    font-weight: 700;
+    font-size: 12px;
+    color: #06210F;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .myqb-share-btn:hover { background: rgba(78, 171, 117, 0.92); }
+  .myqb-share-btn:active { background: rgba(78, 171, 117, 1); }
+
   /* --- Carousel track ---------------------------------------------------- */
   .rankings-row { position: relative; }
   .rankings-track {
@@ -591,12 +737,15 @@
      shield exactly) — this block only adds the shield's shape/size/
      position. The fill itself is static; the shine-on-swipe motion lives
      entirely in the separate .shield-shine overlay below so the shield's
-     actual color never shifts mid-animation. A 4-point diamond (every edge
-     a sharp diagonal, no flat run) rather than the earlier 6-point shape,
-     which had a flat vertical edge on each side — .shield-shine's bright
-     band leaked past exactly those flat edges on real devices (anti-
-     aliasing along a long straight clip-path edge is less reliable than at
-     a sharp vertex). All-pointed keeps it contained. */
+     actual color never shifts mid-animation. Shape is a classic heraldic
+     shield outline (two rounded shoulders, a shallow center notch, sides
+     tapering to a point) via clip-path: path() in this element's own
+     56x66 pixel space — matched point-for-point by drawShield()'s canvas
+     bezier curves below, in fractional (0-1) terms, so the shape can be
+     redrawn at any size for the share graphic and still match exactly.
+     clip-path itself is never animated (only .shield-shine's transform
+     is), which is what keeps this reliable in WebKit — see the comment
+     on .shield-shine. */
   .pcard-photo-zone .tier-pill {
     position: absolute;
     top: 10px;
@@ -606,7 +755,7 @@
     width: 56px;
     height: 66px;
     padding: 15px 0 0;
-    clip-path: polygon(50% 0%, 100% 36%, 50% 100%, 0% 36%);
+    clip-path: path("M28,1.98 C34.72,-1.32 42,-1.32 47.6,1.98 C54.32,1.98 56,5.28 56,11.88 C56,26.4 54.32,39.6 50.4,47.52 C44.8,58.08 36.4,64.02 28,66 C19.6,64.02 11.2,58.08 5.6,47.52 C1.68,39.6 0,26.4 0,11.88 C0,5.28 1.68,1.98 8.4,1.98 C14,-1.32 21.28,-1.32 28,1.98 Z");
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -622,7 +771,7 @@
      not `background-position` — WebKit intermittently fails to keep a
      `clip-path` mask in sync with an element whose *background* is
      animating underneath it (confirmed in real WebKit: the shine's
-     corners briefly leaked outside the shield's hexagon mid-sweep, not
+     corners briefly leaked outside the shield's outline mid-sweep, not
      reproducible in Chromium, not present in static frames — a live-
      animation-only compositing glitch). `transform` is compositor-only and
      doesn't touch paint, so the parent .tier-pill's clip-path — itself
@@ -849,6 +998,12 @@
     border-radius: 12px;
     padding: 3px;
   }
+  /* Without this, the class's own `display: flex` (an author rule) beats
+     the UA stylesheet's `[hidden] { display: none }` at equal specificity,
+     so setting .hidden = true from JS silently does nothing — exactly what
+     happened when "My QB Power Rankings"' Share button opened the sheet
+     with this toggle hidden but it stayed visible anyway. */
+  .share-sheet-toggle[hidden] { display: none; }
   .share-sheet-toggle-btn {
     flex: 1;
     border: none;
@@ -862,6 +1017,26 @@
     cursor: pointer;
   }
   .share-sheet-toggle-btn.active { background: var(--gray-800); color: var(--gray-100); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+  /* Shown instead of .share-sheet-toggle when the sheet is opened from "My
+     QB Power Rankings" (a single, user-ordered graphic, not a choice
+     between two fixed ones) — same "top 10 by default, expand to see all"
+     link as .share-sheet-show-all in teams-power-ranking-card-prototype.html. */
+  .share-sheet-show-all {
+    display: block;
+    width: 100%;
+    margin: 4px 0 0;
+    padding: 8px 0;
+    border: none;
+    background: none;
+    font-family: var(--font-franklin);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--gray-600);
+    text-decoration: underline;
+    text-align: center;
+    cursor: pointer;
+  }
+  .share-sheet-show-all[hidden] { display: none; }
   .share-sheet-preview {
     flex: 0 1 auto;
     min-height: 0;
@@ -1013,12 +1188,38 @@
 
     </section>
 
+    <!-- ============ "My QB Power Rankings" drag-to-reorder tool ============
+         Always-visible inline card, not a link-triggered modal like
+         teams-power-ranking-card-prototype.html's own version — sits
+         directly in the feed, right after the QB Tiers module. -->
+    <section class="myqb-module" aria-label="My QB Power Rankings">
+      <h2 class="myqb-title">My QB Power Rankings</h2>
+      <p class="myqb-instructions">Drag quarterbacks to rank them best to worst. Last week's rank and this season's high/low are shown for reference. Your list saves automatically.</p>
+
+      <div class="myqb-list-header">
+        <span></span>
+        <span>Rank</span>
+        <span></span>
+        <span>Quarterback</span>
+        <span>LW</span>
+        <span>High</span>
+        <span>Low</span>
+      </div>
+      <div class="myqb-list" id="myQbList"><!-- draggable rows render here --></div>
+
+      <div class="myqb-actions">
+        <span class="myqb-saved-note" id="myQbSavedNote" hidden>Saved</span>
+        <button type="button" class="myqb-reset-btn" id="myQbReset">Reset</button>
+        <button type="button" class="myqb-share-btn" id="myQbShare">Share</button>
+      </div>
+    </section>
+
     <div class="feed-filler">More from your feed</div>
     <div class="feed-filler-row"></div>
     <div class="feed-filler-row"></div>
 
     <!-- ============ Share sheet (opened by the list view's floating share
-         button) ============ -->
+         button, or by "My QB Power Rankings"' own Share button) ============ -->
     <div class="share-sheet-overlay" id="shareSheetOverlay" hidden>
       <div class="share-sheet">
         <div class="share-sheet-handle"></div>
@@ -1035,6 +1236,7 @@
           <button type="button" class="share-sheet-toggle-btn active" data-graphic="tier" aria-pressed="true">By Tier</button>
           <button type="button" class="share-sheet-toggle-btn" data-graphic="full" aria-pressed="false">Full List</button>
         </div>
+        <button type="button" class="share-sheet-show-all" id="shareShowAll" hidden>Show all 32 quarterbacks</button>
         <div class="share-sheet-preview">
           <div class="share-sheet-preview-media">
             <img class="share-sheet-preview-img" id="shareSheetPreviewImg" alt="Preview of the NFL QB Tiers graphic" hidden>
@@ -1123,6 +1325,63 @@
     { rank: "33", tier: 4, avg: "4.34", name: "Spencer Rattler", team: "Saints", teamFull: "New Orleans Saints", color: "#C5AD7C", prevTier: "New", age: "24", ht: "6'0\"", wt: "211", pullquote: "He's up and down. Not real high on him", blurb: "Rattler, who started six games as a fifth-round rookie in 2024, appears in Tiers this year in case New Orleans does not go with second-round rookie Tyler Shough. (Jake Haener has also rotated in with the Saints' first-teamers but is not considered a serious contender to start.) \"You watch Rattler play against Tampa Bay in his first game, then watch him play against Tampa Bay in his last game, I mean, there was a lot to love there,\" the lone voter placing Rattler in Tier 3 said. \"He improved. I thought Rattler definitely had a chance to be a starter.\" The Saints went 0-6 and averaged 10.8 points per game on offense with Rattler in the lineup last season.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163152/SpencerRattler.png" },
     { rank: "34", tier: 5, avg: "4.56", name: "Kenny Pickett", team: "Browns", teamFull: "Cleveland Browns", color: "#FF3C00", prevTier: "New", age: "27", ht: "6'3\"", wt: "220", pullquote: "Sometimes, guys just get into bad situations", blurb: "Pickett and Ben Roethlisberger combined to start 38 games for the Steelers when Matt Canada was the team's offensive coordinator. The offense averaged slightly more yards per play (4.9 to 4.8) and EPA per play (-0.05 to -0.06) in the 22 games Pickett started than in the 16 games Roethlisberger started. \"Sometimes, guys just get into bad situations, so you really don't know what they are,\" a defensive coordinator said. \"That is why sometimes you see guys go somewhere else and you say, 'Hey, the guy can play a little bit.' They can all play if they are drafted in the first round. Do they get in the right system?\" Pickett has made 22 of his 25 career starts so far with Canada as his offensive coordinator.", photo: "https://static01.nyt.com/athletic/uploads/wp/2025/08/04163218/KennyPickett.png" },
   ];
+
+  // "My QB Power Rankings" data — deliberately a separate dataset from
+  // PLAYERS above, not a re-slice of it: this is a real weekly stock-report
+  // ranking (reference-rankings/NFL_QB_rankings_reference.html, sourced from
+  // its embedded Datawrapper chart), one QB per team, 32 total — not the
+  // panel-voted Tiers list's 34 (which includes a couple of teams' backups).
+  // `rank` here is just the stock report's own order (1-32); the draggable
+  // list below re-derives live rank from DOM position, same pattern as
+  // teams-power-ranking-card-prototype.html's myRankOrder. `lastWeek: null`
+  // means new to the ranking this week (no prior rank to show).
+  const MY_QB_RANKINGS = [
+    { rank: 1, name: "Drake Maye", team: "Patriots", teamId: 49, lastWeek: 1, seasonHigh: 1, seasonLow: 21 },
+    { rank: 2, name: "Matthew Stafford", team: "Rams", teamId: 59, lastWeek: 2, seasonHigh: 1, seasonLow: 11 },
+    { rank: 3, name: "Josh Allen", team: "Bills", teamId: 34, lastWeek: 3, seasonHigh: 1, seasonLow: 3 },
+    { rank: 4, name: "Justin Herbert", team: "Chargers", teamId: 56, lastWeek: 4, seasonHigh: 4, seasonLow: 14 },
+    { rank: 5, name: "Sam Darnold", team: "Seahawks", teamId: 57, lastWeek: 5, seasonHigh: 5, seasonLow: 17 },
+    { rank: 6, name: "Joe Burrow", team: "Bengals", teamId: 37, lastWeek: 6, seasonHigh: 2, seasonLow: 12 },
+    { rank: 7, name: "Trevor Lawrence", team: "Jaguars", teamId: 45, lastWeek: 7, seasonHigh: 7, seasonLow: 23 },
+    { rank: 8, name: "Brock Purdy", team: "49ers", teamId: 58, lastWeek: 8, seasonHigh: 8, seasonLow: 15 },
+    { rank: 9, name: "Dak Prescott", team: "Cowboys", teamId: 39, lastWeek: 9, seasonHigh: 5, seasonLow: 16 },
+    { rank: 10, name: "Bo Nix", team: "Broncos", teamId: 40, lastWeek: 10, seasonHigh: 8, seasonLow: 22 },
+    { rank: 11, name: "Caleb Williams", team: "Bears", teamId: 36, lastWeek: 11, seasonHigh: 10, seasonLow: 27 },
+    { rank: 12, name: "Jordan Love", team: "Packers", teamId: 42, lastWeek: 12, seasonHigh: 4, seasonLow: 12 },
+    { rank: 13, name: "Jalen Hurts", team: "Eagles", teamId: 54, lastWeek: 13, seasonHigh: 5, seasonLow: 16 },
+    { rank: 14, name: "Jared Goff", team: "Lions", teamId: 41, lastWeek: 14, seasonHigh: 4, seasonLow: 14 },
+    { rank: 15, name: "Baker Mayfield", team: "Buccaneers", teamId: 60, lastWeek: 15, seasonHigh: 3, seasonLow: 15 },
+    { rank: 16, name: "Aaron Rodgers", team: "Steelers", teamId: 55, lastWeek: 18, seasonHigh: 14, seasonLow: 24 },
+    { rank: 17, name: "Lamar Jackson", team: "Ravens", teamId: 33, lastWeek: null, seasonHigh: 2, seasonLow: 17 },
+    { rank: 18, name: "C.J. Stroud", team: "Texans", teamId: 43, lastWeek: 16, seasonHigh: 12, seasonLow: 18 },
+    { rank: 19, name: "Kirk Cousins", team: "Falcons", teamId: 32, lastWeek: 22, seasonHigh: 19, seasonLow: 30 },
+    { rank: 20, name: "Tyler Shough", team: "Saints", teamId: 50, lastWeek: 19, seasonHigh: 19, seasonLow: 32 },
+    { rank: 21, name: "Jacoby Brissett", team: "Cardinals", teamId: 31, lastWeek: 24, seasonHigh: 21, seasonLow: 32 },
+    { rank: 22, name: "Bryce Young", team: "Panthers", teamId: 35, lastWeek: 17, seasonHigh: 17, seasonLow: 27 },
+    { rank: 23, name: "Cam Ward", team: "Titans", teamId: 61, lastWeek: 20, seasonHigh: 20, seasonLow: 26 },
+    { rank: 24, name: "Jaxson Dart", team: "Giants", teamId: 51, lastWeek: 21, seasonHigh: 18, seasonLow: 26 },
+    { rank: 25, name: "J.J. McCarthy", team: "Vikings", teamId: 48, lastWeek: null, seasonHigh: 23, seasonLow: 31 },
+    { rank: 26, name: "Shedeur Sanders", team: "Browns", teamId: 38, lastWeek: 27, seasonHigh: 26, seasonLow: 32 },
+    { rank: 27, name: "Quinn Ewers", team: "Dolphins", teamId: 47, lastWeek: 29, seasonHigh: 27, seasonLow: 29 },
+    { rank: 28, name: "Kenny Pickett", team: "Raiders", teamId: 53, lastWeek: 30, seasonHigh: 28, seasonLow: 32 },
+    { rank: 29, name: "Riley Leonard", team: "Colts", teamId: 44, lastWeek: null, seasonHigh: 29, seasonLow: 32 },
+    { rank: 30, name: "Josh Johnson", team: "Commanders", teamId: 62, lastWeek: null, seasonHigh: 30, seasonLow: 30 },
+    { rank: 31, name: "Chris Oladokun", team: "Chiefs", teamId: 46, lastWeek: 31, seasonHigh: 31, seasonLow: 32 },
+    { rank: 32, name: "Brady Cook", team: "Jets", teamId: 52, lastWeek: 32, seasonHigh: 31, seasonLow: 32 },
+  ];
+
+  // Team colors for MY_QB_RANKINGS — keyed by the same numeric teamId used
+  // in the local logo cache below, values straight from iOS/data/teams.js
+  // (the repo's own source of truth for team colors), not re-derived.
+  const MY_QB_TEAM_COLORS = {
+    31: "#620018", 32: "#940202", 33: "#250250", 34: "#940202", 35: "#0085CA",
+    36: "#05192e", 37: "#FF6600", 38: "#ff3c00", 39: "#05192e", 40: "#FF6600",
+    41: "#0085ca", 42: "#06391A", 43: "#05192e", 44: "#012F6C", 45: "#005E6D",
+    46: "#940202", 47: "#005E6D", 48: "#250250", 49: "#05192e", 50: "#C5AD7C",
+    51: "#05192e", 52: "#06391A", 53: "#1c1c1c", 54: "#005E6D", 55: "#1c1c1c",
+    56: "#0085CA", 57: "#05192e", 58: "#940202", 59: "#003594", 60: "#940202",
+    61: "#05192e", 62: "#620018",
+  };
 
   // Tier-change indicator — same up/down/steady pattern as the teams
   // prototype's movement(), computed from tier vs. prevTier instead of
@@ -1362,16 +1621,30 @@
     return grad;
   }
 
-  // Shield outline — same 4-point diamond as the CSS clip-path on
-  // .pcard-photo-zone .tier-pill, just drawn as a canvas path instead of a
-  // clip-path, so the "by tier" graphic's shields visually match the cards.
+  // Shield outline — same heraldic shape (fractional control points, 0-1
+  // relative to w/h) as the CSS clip-path: path() on .pcard-photo-zone
+  // .tier-pill, just drawn as bezier curves instead of an SVG path string,
+  // so the "by tier" graphic's shields visually match the cards at any size.
   function drawShield(ctx, x, y, w, h, tier) {
-    const pts = [[0.5, 0], [1, 0.36], [0.5, 1], [0, 0.36]]
-      .map(([px, py]) => [x + px * w, y + py * h]);
+    const P = (fx, fy) => [x + fx * w, y + fy * h];
+    const top = P(0.5, 0.03);
+    const c1 = P(0.62, -0.02), c2 = P(0.75, -0.02), shoulder = P(0.85, 0.03);
+    const c3 = P(0.97, 0.03), c4 = P(1, 0.08), widest = P(1, 0.18);
+    const c5 = P(1, 0.4), c6 = P(0.97, 0.6), mid = P(0.9, 0.72);
+    const c7 = P(0.8, 0.88), c8 = P(0.65, 0.97), bottom = P(0.5, 1);
+    const mirrorX = ([px, py]) => [x + (w - (px - x)), py];
+
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.moveTo(...top);
+    ctx.bezierCurveTo(...c1, ...c2, ...shoulder);
+    ctx.bezierCurveTo(...c3, ...c4, ...widest);
+    ctx.bezierCurveTo(...c5, ...c6, ...mid);
+    ctx.bezierCurveTo(...c7, ...c8, ...bottom);
+    ctx.bezierCurveTo(...mirrorX(c8), ...mirrorX(c7), ...mirrorX(mid));
+    ctx.bezierCurveTo(...mirrorX(c6), ...mirrorX(c5), ...mirrorX(widest));
+    ctx.bezierCurveTo(...mirrorX(c4), ...mirrorX(c3), ...mirrorX(shoulder));
+    ctx.bezierCurveTo(...mirrorX(c2), ...mirrorX(c1), ...top);
     ctx.closePath();
     ctx.fillStyle = tierGradient(ctx, x, y, w, h, tier);
     ctx.fill();
@@ -1435,7 +1708,7 @@
   // matching .rankings-list-titlebar's own look so the saved/shared image
   // carries the same title it has in the collapsed list, not just in the
   // share sheet's surrounding (non-exported) HTML chrome.
-  async function drawGraphicHeader(ctx) {
+  async function drawGraphicHeader(ctx, title = "NFL QB Tiers", subtitle = "50 coaches and executives, surveyed anonymously") {
     ctx.fillStyle = "#15332D";
     ctx.fillRect(0, 0, GRAPHIC_W, GRAPHIC_HEADER_H);
     try {
@@ -1447,10 +1720,10 @@
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
     ctx.font = "700 50px 'AthleticSlab', serif";
-    ctx.fillText("NFL QB Tiers", GRAPHIC_W / 2, 130);
+    ctx.fillText(title, GRAPHIC_W / 2, 130);
     ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
     ctx.font = "italic 500 24px 'AthleticSerif', serif";
-    ctx.fillText("50 coaches and executives, surveyed anonymously", GRAPHIC_W / 2, 168);
+    ctx.fillText(subtitle, GRAPHIC_W / 2, 168);
     ctx.textAlign = "left";
   }
 
@@ -1609,7 +1882,9 @@
   const shareSheetClose = document.getElementById("shareSheetClose");
   const shareSheetPreviewImg = document.getElementById("shareSheetPreviewImg");
   const shareSheetLoading = document.getElementById("shareSheetLoading");
+  const shareGraphicToggle = document.querySelector(".share-sheet-toggle");
   const shareGraphicToggleBtns = document.querySelectorAll(".share-sheet-toggle-btn");
+  const shareShowAllBtn = document.getElementById("shareShowAll");
   const shareSaveBtn = document.getElementById("shareSaveBtn");
   const shareCopyBtn = document.getElementById("shareCopyBtn");
   const shareMessageBtn = document.getElementById("shareMessageBtn");
@@ -1618,9 +1893,16 @@
 
   if (!(navigator.clipboard && window.ClipboardItem)) shareCopyBtn.hidden = true;
 
+  // The "My QB Power Rankings" graphic defaults to the top 10 — long enough
+  // to read at a glance, short enough to fit on a phone screen when shared
+  // — same convention as teams-power-ranking-card-prototype.html's own
+  // SHARE_PREVIEW_LIMIT. shareShowAllBtn toggles it; only relevant/visible
+  // in "myrank" mode, since "tier"/"full" are always-complete graphics.
+  const SHARE_PREVIEW_LIMIT = 10;
   let shareSheetBlob = null;
   let shareSheetPreviewURL = null;
   let activeGraphicMode = "tier";
+  let shareShowingAllMyQb = false;
 
   function closeShareSheet() {
     shareSheetOverlay.hidden = true;
@@ -1631,7 +1913,9 @@
     shareSheetLoading.hidden = false;
     shareSheetLoading.textContent = "Generating preview…";
     try {
-      shareSheetBlob = activeGraphicMode === "tier" ? await generateTierGraphic() : await generateFullListGraphic();
+      if (activeGraphicMode === "tier") shareSheetBlob = await generateTierGraphic();
+      else if (activeGraphicMode === "full") shareSheetBlob = await generateFullListGraphic();
+      else shareSheetBlob = await generateMyRankGraphic(shareShowingAllMyQb ? null : SHARE_PREVIEW_LIMIT);
       if (shareSheetPreviewURL) URL.revokeObjectURL(shareSheetPreviewURL);
       shareSheetPreviewURL = URL.createObjectURL(shareSheetBlob);
       shareSheetPreviewImg.src = shareSheetPreviewURL;
@@ -1643,15 +1927,27 @@
     }
   }
 
-  async function openShareSheet() {
+  // mode: "tier" | "full" (from the list view's share button, unchanged) or
+  // "myrank" (from My QB Power Rankings' own Share button) — swaps which
+  // controls show above the preview, since a personal ordered list and the
+  // two fixed official graphics aren't chosen the same way.
+  async function openShareSheet(mode = "tier") {
     shareSheetOverlay.hidden = false;
     shareSheetBlob = null;
-    activeGraphicMode = "tier";
-    shareGraphicToggleBtns.forEach((b) => {
-      const isTier = b.dataset.graphic === "tier";
-      b.classList.toggle("active", isTier);
-      b.setAttribute("aria-pressed", String(isTier));
-    });
+    activeGraphicMode = mode;
+    const isMyRank = mode === "myrank";
+    shareGraphicToggle.hidden = isMyRank;
+    shareShowAllBtn.hidden = !isMyRank;
+    if (isMyRank) {
+      shareShowingAllMyQb = false;
+      shareShowAllBtn.textContent = `Show all ${myQbOrder.length} quarterbacks`;
+    } else {
+      shareGraphicToggleBtns.forEach((b) => {
+        const isActive = b.dataset.graphic === mode;
+        b.classList.toggle("active", isActive);
+        b.setAttribute("aria-pressed", String(isActive));
+      });
+    }
     await renderSharePreview();
   }
 
@@ -1667,7 +1963,15 @@
     });
   });
 
-  listShareBtn.addEventListener("click", openShareSheet);
+  shareShowAllBtn.addEventListener("click", async () => {
+    shareShowingAllMyQb = !shareShowingAllMyQb;
+    shareShowAllBtn.textContent = shareShowingAllMyQb
+      ? "Show top 10 quarterbacks"
+      : `Show all ${myQbOrder.length} quarterbacks`;
+    await renderSharePreview();
+  });
+
+  listShareBtn.addEventListener("click", () => openShareSheet("tier"));
   shareSheetClose.addEventListener("click", closeShareSheet);
   shareSheetOverlay.addEventListener("click", (e) => {
     if (e.target === shareSheetOverlay) closeShareSheet();
@@ -1682,21 +1986,29 @@
     }
   });
 
+  function shareFileNameAndTitle() {
+    return activeGraphicMode === "myrank"
+      ? { filename: "my-qb-power-rankings.png", title: "My QB Power Rankings" }
+      : { filename: "nfl-qb-tiers.png", title: "NFL QB Tiers" };
+  }
+
   function downloadShareBlob() {
     if (!shareSheetBlob) return;
+    const { filename } = shareFileNameAndTitle();
     const url = URL.createObjectURL(shareSheetBlob);
     const a = document.createElement("a");
-    a.href = url; a.download = "nfl-qb-tiers.png";
+    a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
   async function shareToDestination() {
     if (!shareSheetBlob) return;
-    const file = new File([shareSheetBlob], "nfl-qb-tiers.png", { type: "image/png" });
+    const { filename, title } = shareFileNameAndTitle();
+    const file = new File([shareSheetBlob], filename, { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: "NFL QB Tiers" });
+        await navigator.share({ files: [file], title });
         return;
       } catch (e) {
         return;
@@ -1709,6 +2021,225 @@
   shareMessageBtn.addEventListener("click", shareToDestination);
   shareWhatsappBtn.addEventListener("click", shareToDestination);
   shareInstagramBtn.addEventListener("click", shareToDestination);
+
+  // --- "My QB Power Rankings": drag-to-reorder tool -----------------------
+  // Ported from teams-power-ranking-card-prototype.html's own "My Power
+  // Rankings" (same drag mechanics, auto-save debounce, and share pattern),
+  // just rendered as an always-visible card in the feed instead of a
+  // link-triggered modal, and against MY_QB_RANKINGS instead of TEAMS.
+  const GRIP_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-linecap="round" aria-hidden="true">
+    <line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="6" x2="16" y2="6" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="12" x2="16" y2="12" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+    <line x1="8" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2.4" /><line x1="8" y1="18" x2="16" y2="18" stroke="rgba(0,0,0,0.4)" stroke-width="0.9" />
+  </svg>`;
+
+  // CDN logo URL for the row list itself — plain <img>, no canvas involved,
+  // so the missing Access-Control-Allow-Origin header on this CDN (already
+  // confirmed for player photos elsewhere in this file) doesn't matter here.
+  // Only the canvas share graphic below needs the local same-origin copies.
+  function teamLogoURL(id, size = 96) {
+    return `https://static01.nyt.com/athletic/logos/team/team-logo-${id}-${size}x${size}.png`;
+  }
+
+  const MYQB_STORAGE_KEY = "myQBRankingsOrder";
+
+  // Order is stored as an array of indices into MY_QB_RANKINGS. Falls back
+  // to the stock report's own order if nothing's saved yet, or if a saved
+  // value doesn't match the current 32-QB dataset.
+  function loadMyQbOrder() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MYQB_STORAGE_KEY) || "null");
+      if (Array.isArray(saved) && saved.length === MY_QB_RANKINGS.length && saved.every((i) => Number.isInteger(i) && i >= 0 && i < MY_QB_RANKINGS.length)) {
+        return saved;
+      }
+    } catch (e) {}
+    return MY_QB_RANKINGS.map((_, i) => i);
+  }
+
+  let myQbOrder = loadMyQbOrder();
+  const myQbList = document.getElementById("myQbList");
+  const myQbShareBtn = document.getElementById("myQbShare");
+  const myQbSavedNote = document.getElementById("myQbSavedNote");
+  const myQbResetBtn = document.getElementById("myQbReset");
+
+  // No Save button — reordering auto-saves. Same debounced "Saved" note as
+  // teams' scheduleAutoSave: hides instantly on any change, only reappears
+  // once the user has genuinely stopped for a few seconds, then fades on
+  // its own — a quiet confirmation, not a persistent status.
+  const MYQB_SAVE_DEBOUNCE_MS = 2400;
+  const MYQB_SAVED_NOTE_VISIBLE_MS = 2200;
+  const MYQB_SAVED_NOTE_FADE_MS = 500; // keep in sync with the CSS transition duration
+  let myQbSaveTimer = null;
+  let myQbSavedNoteFadeTimer = null;
+  let myQbSavedNoteHideTimer = null;
+
+  function hideMyQbSavedNoteImmediately() {
+    if (myQbSavedNoteFadeTimer) { clearTimeout(myQbSavedNoteFadeTimer); myQbSavedNoteFadeTimer = null; }
+    if (myQbSavedNoteHideTimer) { clearTimeout(myQbSavedNoteHideTimer); myQbSavedNoteHideTimer = null; }
+    myQbSavedNote.hidden = true;
+    myQbSavedNote.style.opacity = "";
+  }
+  function showMyQbSavedNoteThenFade() {
+    myQbSavedNote.hidden = false;
+    myQbSavedNote.style.opacity = "1";
+    myQbSavedNoteFadeTimer = setTimeout(() => {
+      myQbSavedNote.style.opacity = "0";
+      myQbSavedNoteHideTimer = setTimeout(() => { myQbSavedNote.hidden = true; }, MYQB_SAVED_NOTE_FADE_MS);
+    }, MYQB_SAVED_NOTE_VISIBLE_MS);
+  }
+  function scheduleMyQbAutoSave() {
+    hideMyQbSavedNoteImmediately();
+    if (myQbSaveTimer) clearTimeout(myQbSaveTimer);
+    myQbSaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(MYQB_STORAGE_KEY, JSON.stringify(myQbOrder));
+      } catch (e) {}
+      myQbSaveTimer = null;
+      showMyQbSavedNoteThenFade();
+    }, MYQB_SAVE_DEBOUNCE_MS);
+  }
+  function cancelPendingMyQbSave() {
+    if (myQbSaveTimer) { clearTimeout(myQbSaveTimer); myQbSaveTimer = null; }
+    hideMyQbSavedNoteImmediately();
+  }
+
+  function myQbRowHTML(qbIndex, position) {
+    const q = MY_QB_RANKINGS[qbIndex];
+    return `
+      <div class="myqb-row" data-qb-index="${qbIndex}">
+        <span class="myqb-handle" aria-label="Drag ${q.name} to reorder">${GRIP_ICON}</span>
+        <span class="myqb-rank">${position + 1}</span>
+        <img class="myqb-logo" src="${teamLogoURL(q.teamId, 72)}" alt="" width="22" height="22" loading="lazy">
+        <span class="myqb-name">${q.name}</span>
+        <span class="myqb-stat">${q.lastWeek ?? "—"}</span>
+        <span class="myqb-stat">${q.seasonHigh}</span>
+        <span class="myqb-stat">${q.seasonLow}</span>
+      </div>`;
+  }
+  function renderMyQbRows() {
+    myQbList.innerHTML = myQbOrder.map((qbIndex, position) => myQbRowHTML(qbIndex, position)).join("");
+  }
+  renderMyQbRows();
+
+  // Re-derive the order array from actual DOM order after a drag, and
+  // refresh the visible rank numbers to match.
+  function syncMyQbOrderFromDOM() {
+    const rows = myQbList.querySelectorAll(".myqb-row");
+    myQbOrder = Array.from(rows).map((row) => Number(row.dataset.qbIndex));
+    rows.forEach((row, i) => { row.querySelector(".myqb-rank").textContent = i + 1; });
+    scheduleMyQbAutoSave();
+  }
+
+  // Drag reorder via Pointer Events (covers mouse + touch), same
+  // insert-before-midpoint approach as teams' onDragPointerMove — the
+  // dragged row jumps in the DOM as soon as the pointer crosses a
+  // neighbor's midpoint, rather than animating it under the finger.
+  let myQbDragRow = null;
+  function onMyQbDragPointerMove(e) {
+    if (!myQbDragRow) return;
+    const rows = Array.from(myQbList.querySelectorAll(".myqb-row"));
+    const y = e.clientY;
+    for (const row of rows) {
+      if (row === myQbDragRow) continue;
+      const rect = row.getBoundingClientRect();
+      if (y < rect.top + rect.height / 2) {
+        if (row.previousElementSibling !== myQbDragRow) {
+          myQbList.insertBefore(myQbDragRow, row);
+          syncMyQbOrderFromDOM();
+        }
+        return;
+      }
+    }
+    if (myQbList.lastElementChild !== myQbDragRow) {
+      myQbList.appendChild(myQbDragRow);
+      syncMyQbOrderFromDOM();
+    }
+  }
+  function onMyQbDragPointerUp() {
+    if (myQbDragRow) myQbDragRow.classList.remove("is-dragging");
+    myQbDragRow = null;
+    window.removeEventListener("pointermove", onMyQbDragPointerMove);
+    window.removeEventListener("pointerup", onMyQbDragPointerUp);
+  }
+  myQbList.addEventListener("pointerdown", (e) => {
+    const row = e.target.closest(".myqb-row");
+    if (!row) return;
+    e.preventDefault();
+    myQbDragRow = row;
+    myQbDragRow.classList.add("is-dragging");
+    window.addEventListener("pointermove", onMyQbDragPointerMove);
+    window.addEventListener("pointerup", onMyQbDragPointerUp);
+  });
+
+  // Reset: back to the stock report's own order. Visual only until the user
+  // drags something again — it doesn't persist by itself.
+  myQbResetBtn.addEventListener("click", () => {
+    myQbOrder = MY_QB_RANKINGS.map((_, i) => i);
+    renderMyQbRows();
+    cancelPendingMyQbSave();
+  });
+
+  myQbShareBtn.addEventListener("click", () => openShareSheet("myrank"));
+
+  // --- Share: a static graphic of MY_QB_RANKINGS in myQbOrder, drawn the
+  // same way as teams' generateShareGraphic — rank + circular team logo
+  // (from the local Assets/team-logos/ cache, same CORS reasoning as
+  // teamLogoLocalURL below) + name, alternating rows, footer. Deliberately
+  // doesn't also draw the LW/High/Low columns — matches teams' own
+  // precedent of keeping the shared image simpler than the on-page table.
+  function myQbLogoLocalURL(teamId) {
+    return `Assets/team-logos/${teamId}.png`;
+  }
+  async function generateMyRankGraphic(limit) {
+    await document.fonts.ready;
+    const order = limit ? myQbOrder.slice(0, limit) : myQbOrder;
+    const logos = await Promise.all(order.map((qbIndex) => loadImage(myQbLogoLocalURL(MY_QB_RANKINGS[qbIndex].teamId))));
+
+    const rowH = 80, footerH = 70;
+    const H = GRAPHIC_HEADER_H + order.length * rowH + footerH;
+    const canvas = document.createElement("canvas");
+    canvas.width = GRAPHIC_W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#121212";
+    ctx.fillRect(0, 0, GRAPHIC_W, H);
+    await drawGraphicHeader(ctx, "My QB Power Rankings", "Made with The Athletic");
+
+    order.forEach((qbIndex, i) => {
+      const q = MY_QB_RANKINGS[qbIndex];
+      const y = GRAPHIC_HEADER_H + i * rowH;
+
+      ctx.fillStyle = i % 2 === 0 ? "#171717" : "#121212";
+      ctx.fillRect(0, y, GRAPHIC_W, rowH);
+
+      ctx.fillStyle = "#F0F0EE";
+      ctx.font = "700 30px 'AthleticSlab', serif";
+      ctx.textAlign = "right";
+      ctx.fillText(String(i + 1), 96, y + rowH / 2 + 10);
+      ctx.textAlign = "left";
+
+      // Team logo, clipped to a circle with the team color behind it —
+      // covers any transparent padding baked into the source PNG.
+      const cx = 146, cy = y + rowH / 2, r = 26;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = MY_QB_TEAM_COLORS[q.teamId] || "#323232";
+      ctx.fill();
+      ctx.clip();
+      const logoSize = r * 1.7;
+      ctx.drawImage(logos[i], cx - logoSize / 2, cy - logoSize / 2, logoSize, logoSize);
+      ctx.restore();
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "500 28px 'AthleticSans', sans-serif";
+      ctx.fillText(q.name, 190, y + rowH / 2 + 9);
+    });
+
+    drawGraphicFooter(ctx, GRAPHIC_W, H, footerH);
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
 
   // --- Card view / list view toggle ---------------------------------------
   const cardsRow = document.getElementById("rankingsRow");
