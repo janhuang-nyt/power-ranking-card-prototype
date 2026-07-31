@@ -494,12 +494,18 @@
   .pcard-change.steady { color: var(--gray-500); }
   .pcard-change.new { color: var(--gray-700); }
 
-  /* Extra top margin (well beyond the .pcard-body flex gap) so the blurb
-     starts safely below the card's visible fold instead of its first line
-     or two peeking in as a half-legible teaser — it should only appear
-     once the user actually scrolls or taps the down arrow. */
+  /* Sits between .pcard-quote and .pcard-blurb. A fixed top margin on the
+     blurb (the old approach) only hid it below the fold for cards whose
+     quote happened to be long enough — a 1-line quote left less content
+     above the blurb, so on shorter/narrower mobile viewports the blurb's
+     first line or two could still peek into view. This gate's height is
+     set in JS (gateBlurb(), on render/resize) to exactly "however much is
+     needed to reach the bottom of .pcard-body's visible area from wherever
+     the quote ends" — guaranteed to push the blurb below the fold
+     regardless of quote length or viewport size, not a guess. */
+  .pcard-blurb-gate { display: block; }
   .pcard-blurb {
-    margin: 46px 0 0;
+    margin: 12px 0 0;
     font-family: var(--font-franklin);
     font-weight: 500;
     font-size: 13px;
@@ -585,7 +591,12 @@
      shield exactly) — this block only adds the shield's shape/size/
      position. The fill itself is static; the shine-on-swipe motion lives
      entirely in the separate .shield-shine overlay below so the shield's
-     actual color never shifts mid-animation. */
+     actual color never shifts mid-animation. A 4-point diamond (every edge
+     a sharp diagonal, no flat run) rather than the earlier 6-point shape,
+     which had a flat vertical edge on each side — .shield-shine's bright
+     band leaked past exactly those flat edges on real devices (anti-
+     aliasing along a long straight clip-path edge is less reliable than at
+     a sharp vertex). All-pointed keeps it contained. */
   .pcard-photo-zone .tier-pill {
     position: absolute;
     top: 10px;
@@ -595,7 +606,7 @@
     width: 56px;
     height: 66px;
     padding: 15px 0 0;
-    clip-path: polygon(50% 0%, 100% 14%, 100% 58%, 50% 100%, 0% 58%, 0% 14%);
+    clip-path: polygon(50% 0%, 100% 36%, 50% 100%, 0% 36%);
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -1262,6 +1273,7 @@
               </div>
               ${factLineHTML(t)}
               <blockquote class="pcard-quote">&ldquo;${t.pullquote}&rdquo;${downArrowHTML(index, t.name)}</blockquote>
+              <span class="pcard-blurb-gate" aria-hidden="true"></span>
               <p class="pcard-blurb">${t.blurb}</p>
             </div>
           </div>
@@ -1350,11 +1362,11 @@
     return grad;
   }
 
-  // Shield outline — same 6-point polygon as the CSS clip-path on
+  // Shield outline — same 4-point diamond as the CSS clip-path on
   // .pcard-photo-zone .tier-pill, just drawn as a canvas path instead of a
   // clip-path, so the "by tier" graphic's shields visually match the cards.
   function drawShield(ctx, x, y, w, h, tier) {
-    const pts = [[0.5, 0], [1, 0.14], [1, 0.58], [0.5, 1], [0, 0.58], [0, 0.14]]
+    const pts = [[0.5, 0], [1, 0.36], [0.5, 1], [0, 0.36]]
       .map(([px, py]) => [x + px * w, y + py * h]);
     ctx.save();
     ctx.beginPath();
@@ -1751,6 +1763,32 @@
     followBtn.setAttribute("aria-label", `${nowFollowing ? "Unfollow" : "Follow"} ${t.name}`);
   });
 
+  // --- Blurb gate: sets .pcard-blurb-gate's height to exactly however much
+  // is needed to push the blurb below pcard-body's visible fold for THIS
+  // card, on THIS viewport — measured, not guessed. A fixed top margin on
+  // the blurb (the earlier approach) only reliably hid it on cards whose
+  // quote was long enough to already fill most of the visible area on its
+  // own; a short 1-line quote left less content above the blurb, so on
+  // narrower/shorter mobile viewports the blurb's first line or two could
+  // still peek into view at rest. Resetting to 0 before measuring is what
+  // makes this idempotent — safe to re-run on resize/rotation.
+  function gateBlurb(card) {
+    const body = card.querySelector(".pcard-body");
+    const gate = card.querySelector(".pcard-blurb-gate");
+    if (!body || !gate) return;
+    gate.style.minHeight = "0px";
+    // Same getBoundingClientRect-relative math as blurbScrollTarget below —
+    // normalizes the gate's position to "distance from the top of the
+    // scrollable content," independent of however far the card happens to
+    // be scrolled right now.
+    const gateTop = gate.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+    const needed = Math.max(0, body.clientHeight - gateTop);
+    gate.style.minHeight = `${needed}px`;
+  }
+  function gateAllBlurbs() {
+    track.querySelectorAll(".rank-card").forEach(gateBlurb);
+  }
+
   // --- Down arrow: click scrolls pcard-body just far enough to bring the
   // blurb's own top edge into view (the "beginning of the description"),
   // not all the way to the bottom of it. It sits in-flow right under the
@@ -1783,8 +1821,19 @@
     const blurb = card.querySelector(".pcard-blurb");
     body.scrollTo({ top: blurbScrollTarget(body, blurb), behavior: reduceMotion ? "auto" : "smooth" });
   });
+  gateAllBlurbs();
   updateAllDownArrows();
-  window.addEventListener("resize", updateAllDownArrows);
+  window.addEventListener("resize", () => {
+    gateAllBlurbs();
+    updateAllDownArrows();
+  });
+  // Local @font-face files load async — if they swap in after the measurement
+  // above, line-wrapping (and therefore how tall the quote/name/etc. above
+  // the gate is) can shift, so re-measure once they're actually in.
+  document.fonts.ready.then(() => {
+    gateAllBlurbs();
+    updateAllDownArrows();
+  });
 
   // --- Edge fades + "N / 34" position counter, synced to scroll --------
   const row = document.getElementById("rankingsRow");
