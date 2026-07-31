@@ -383,16 +383,28 @@
     align-items: center;
     gap: 6px;
   }
+  /* 31px, not 16px, on each side — .myqb-list-header sits directly in
+     .myqb-module (no horizontal padding there), but each .myqb-row's
+     actual inset from that same edge is 16px (.myqb-list's margin) + 1px
+     (.myqb-list's border) + 14px (.myqb-row's own padding) = 31px. At
+     16px the header's grid was 30px wider than the rows' and its columns
+     drifted right of the numbers below with every column after the first
+     couple. */
   .myqb-list-header {
-    padding: 0 16px 6px;
+    padding: 0 31px 6px;
     font-family: var(--font-franklin);
     font-weight: 700;
     font-size: 9.5px;
+    line-height: 1.2;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     color: var(--gray-500);
   }
-  .myqb-list-header span:nth-child(n+5) { text-align: right; }
+  /* Centered over their numbers below — Rank (.myqb-rank) and LW/High/Low
+     (.myqb-stat) are both text-align:center, so these need to match rather
+     than the row/list-header's default left alignment. */
+  .myqb-list-header span:nth-child(2),
+  .myqb-list-header span:nth-child(n+5) { text-align: center; }
   .myqb-list { margin: 0 16px; background: var(--gray-200); border: 1px solid var(--gray-300); border-radius: 16px; padding: 4px 0; }
   /* touch-action deliberately NOT none here (only on .myqb-handle and
      .myqb-name below) — with the whole row grabbing every touch as a
@@ -431,11 +443,20 @@
     text-align: center;
   }
   .myqb-logo { display: block; width: 22px; height: 22px; object-fit: contain; }
-  .myqb-name {
-    min-width: 0;
+  /* Grid items stretch to fill their column by default, so this box spans
+     the full name column width — well past short QB names — even though
+     it only looks like text. touch-action stays auto here; only
+     .myqb-name-text (sized to the actual visible text) gets none, so the
+     blank space between a short name and the LW/High/Low columns still
+     scrolls instead of grabbing the row. */
+  .myqb-name { min-width: 0; }
+  .myqb-name-text {
+    display: inline-block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    vertical-align: top;
     touch-action: none;
     font-family: var(--font-slab-bold);
     font-weight: 700;
@@ -443,7 +464,7 @@
     color: var(--gray-800);
   }
   .myqb-stat {
-    text-align: right;
+    text-align: center;
     font-family: var(--font-franklin);
     font-weight: 600;
     font-size: 12.5px;
@@ -461,7 +482,6 @@
     padding: 0 16px;
   }
   .myqb-saved-note {
-    margin-right: auto;
     font-family: var(--font-franklin);
     font-weight: 400;
     font-size: 11px;
@@ -1208,9 +1228,9 @@
         <span>Rank</span>
         <span></span>
         <span>Quarterback</span>
-        <span>LW</span>
-        <span>High</span>
-        <span>Low</span>
+        <span>Last Wk</span>
+        <span>Szn High</span>
+        <span>Szn Low</span>
       </div>
       <div class="myqb-list" id="myQbList"><!-- draggable rows render here --></div>
 
@@ -2126,7 +2146,7 @@
         <span class="myqb-handle" aria-label="Drag ${q.name} to reorder">${GRIP_ICON}</span>
         <span class="myqb-rank">${position + 1}</span>
         <img class="myqb-logo" src="${teamLogoURL(q.teamId, 72)}" alt="" width="22" height="22" loading="lazy">
-        <span class="myqb-name">${q.name}</span>
+        <span class="myqb-name"><span class="myqb-name-text">${q.name}</span></span>
         <span class="myqb-stat">${q.lastWeek ?? "—"}</span>
         <span class="myqb-stat">${q.seasonHigh}</span>
         <span class="myqb-stat">${q.seasonLow}</span>
@@ -2207,7 +2227,7 @@
   myQbList.addEventListener("pointerdown", (e) => {
     const row = e.target.closest(".myqb-row");
     if (!row) return;
-    if (e.target.closest(".myqb-handle, .myqb-name")) {
+    if (e.target.closest(".myqb-handle, .myqb-name-text")) {
       e.preventDefault();
       startMyQbDrag(row);
       return;

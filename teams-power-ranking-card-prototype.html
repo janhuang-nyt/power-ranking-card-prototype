@@ -941,12 +941,24 @@
     height: 24px;
     object-fit: contain;
   }
+  /* flex:1 so the column still reserves the right width for layout/
+     truncation purposes, but touch-action stays auto here — this box
+     spans all the way to the row's right edge, well past short team
+     names, and blocking touch on that trailing blank space is exactly
+     what was still hijacking scroll attempts on the right side of the
+     row. Only .myrank-name-text (sized to the actual visible text, not
+     the column) gets touch-action:none. */
   .myrank-name {
     min-width: 0;
     flex: 1;
+  }
+  .myrank-name-text {
+    display: inline-block;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    vertical-align: top;
     touch-action: none;
     font-family: var(--font-slab-bold);
     font-weight: 700;
@@ -1885,7 +1897,7 @@
         <span class="myrank-handle" aria-label="Drag ${t.team} to reorder">${GRIP_ICON}</span>
         <span class="myrank-rank">${position + 1}</span>
         <img class="myrank-logo" src="${teamLogoURL(t.teamId, 72)}" alt="" width="24" height="24" loading="lazy">
-        <span class="myrank-name">${t.team}</span>
+        <span class="myrank-name"><span class="myrank-name-text">${t.team}</span></span>
       </div>`;
   }
 
@@ -1969,7 +1981,7 @@
   myRankList.addEventListener("pointerdown", (e) => {
     const row = e.target.closest(".myrank-row");
     if (!row) return;
-    if (e.target.closest(".myrank-handle, .myrank-name")) {
+    if (e.target.closest(".myrank-handle, .myrank-name-text")) {
       e.preventDefault();
       startDrag(row);
       return;
