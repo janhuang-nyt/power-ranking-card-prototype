@@ -894,6 +894,12 @@
     background: linear-gradient(to bottom, transparent, var(--gray-200));
     pointer-events: none;
   }
+  /* touch-action deliberately NOT none here (only on .myrank-handle and
+     .myrank-name below) — with the whole row grabbing every touch as a
+     potential drag, a normal vertical swipe to scroll the list got
+     hijacked into reordering teams instead. Only the handle, the name, and
+     a long-press anywhere else (see the pointerdown handler) start a drag
+     now; everything else in the row scrolls like plain list content. */
   .myrank-row {
     display: flex;
     align-items: center;
@@ -901,7 +907,6 @@
     padding: 8px 6px;
     background: var(--gray-200);
     border-radius: 10px;
-    touch-action: none;
     user-select: none;
     cursor: grab;
   }
@@ -920,6 +925,7 @@
     justify-content: center;
     color: var(--gray-500);
     cursor: grab;
+    touch-action: none;
   }
   .myrank-rank {
     flex: 0 0 26px;
@@ -941,6 +947,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    touch-action: none;
     font-family: var(--font-slab-bold);
     font-weight: 700;
     font-size: 13px;
@@ -1931,10 +1938,7 @@
     window.removeEventListener("pointerup", onDragPointerUp);
   }
 
-  myRankList.addEventListener("pointerdown", (e) => {
-    const row = e.target.closest(".myrank-row");
-    if (!row) return;
-    e.preventDefault();
+  function startDrag(row) {
     dragRow = row;
     dragRow.classList.add("is-dragging");
     // Reset/Save only appear once the user actually starts trying to
@@ -1942,7 +1946,50 @@
     myRankFloatingActions.hidden = false;
     window.addEventListener("pointermove", onDragPointerMove);
     window.addEventListener("pointerup", onDragPointerUp);
+  }
+
+  // Only the grip handle and the team name start a drag on first touch —
+  // grabbing the whole row (the old behavior) meant a normal vertical
+  // swipe to scroll the list got hijacked into reordering instead. Touching
+  // anywhere ELSE in the row starts a long-press timer instead: if the
+  // finger stays roughly still until it fires, that's a deliberate "pick
+  // this up" gesture and a drag starts; if it moves first, that's a scroll
+  // and the timer is cancelled without ever having blocked it. Only
+  // touch/pen get the long-press fallback — mouse users don't have a
+  // scroll-vs-drag ambiguity to begin with (wheel scrolls, not click-drag).
+  const LONG_PRESS_MS = 450;
+  const LONG_PRESS_CANCEL_PX = 10;
+  let pressRow = null, pressTimer = null, pressX = 0, pressY = 0;
+
+  function cancelLongPress() {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    pressRow = null;
+  }
+
+  myRankList.addEventListener("pointerdown", (e) => {
+    const row = e.target.closest(".myrank-row");
+    if (!row) return;
+    if (e.target.closest(".myrank-handle, .myrank-name")) {
+      e.preventDefault();
+      startDrag(row);
+      return;
+    }
+    if (e.pointerType !== "mouse") {
+      pressRow = row;
+      pressX = e.clientX;
+      pressY = e.clientY;
+      pressTimer = setTimeout(() => {
+        if (pressRow) startDrag(pressRow);
+        pressRow = null;
+      }, LONG_PRESS_MS);
+    }
   });
+  myRankList.addEventListener("pointermove", (e) => {
+    if (!pressRow) return;
+    if (Math.hypot(e.clientX - pressX, e.clientY - pressY) > LONG_PRESS_CANCEL_PX) cancelLongPress();
+  });
+  myRankList.addEventListener("pointerup", cancelLongPress);
+  myRankList.addEventListener("pointercancel", cancelLongPress);
 
   // --- Open / close the modal ---------------------------------------------
   function openMyRankModal() {

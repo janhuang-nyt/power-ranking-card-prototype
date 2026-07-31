@@ -394,10 +394,15 @@
   }
   .myqb-list-header span:nth-child(n+5) { text-align: right; }
   .myqb-list { margin: 0 16px; background: var(--gray-200); border: 1px solid var(--gray-300); border-radius: 16px; padding: 4px 0; }
+  /* touch-action deliberately NOT none here (only on .myqb-handle and
+     .myqb-name below) — with the whole row grabbing every touch as a
+     potential drag, a normal vertical swipe to scroll the list got
+     hijacked into reordering QBs instead. Only the handle, the name, and
+     a long-press anywhere else (see the pointerdown handler) start a drag
+     now; everything else in the row scrolls like plain list content. */
   .myqb-row {
     padding: 7px 14px;
     border-top: 1px solid var(--gray-300);
-    touch-action: none;
     user-select: none;
     cursor: grab;
   }
@@ -416,6 +421,7 @@
     justify-content: center;
     color: var(--gray-500);
     cursor: grab;
+    touch-action: none;
   }
   .myqb-rank {
     font-family: var(--font-slab-bold);
@@ -430,6 +436,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    touch-action: none;
     font-family: var(--font-slab-bold);
     font-weight: 700;
     font-size: 13px;
@@ -737,15 +744,15 @@
      shield exactly) — this block only adds the shield's shape/size/
      position. The fill itself is static; the shine-on-swipe motion lives
      entirely in the separate .shield-shine overlay below so the shield's
-     actual color never shifts mid-animation. Shape is a classic heraldic
-     shield outline (two rounded shoulders, a shallow center notch, sides
-     tapering to a point) via clip-path: path() in this element's own
-     56x66 pixel space — matched point-for-point by drawShield()'s canvas
-     bezier curves below, in fractional (0-1) terms, so the shape can be
-     redrawn at any size for the share graphic and still match exactly.
-     clip-path itself is never animated (only .shield-shine's transform
-     is), which is what keeps this reliable in WebKit — see the comment
-     on .shield-shine. */
+     actual color never shifts mid-animation. Shape is traced directly from
+     reference-rankings/shield crest.avif (via OpenCV contour extraction +
+     spline-smoothed bezier fit, not hand-approximated) as clip-path:
+     path() in this element's own 56x66 pixel space — matched point-for-
+     point by drawShield()'s canvas bezier curves below, in fractional
+     (0-1) terms, so the shape can be redrawn at any size for the share
+     graphic and still match exactly. clip-path itself is never animated
+     (only .shield-shine's transform is), which is what keeps this
+     reliable in WebKit — see the comment on .shield-shine. */
   .pcard-photo-zone .tier-pill {
     position: absolute;
     top: 10px;
@@ -755,7 +762,7 @@
     width: 56px;
     height: 66px;
     padding: 15px 0 0;
-    clip-path: path("M28,1.98 C34.72,-1.32 42,-1.32 47.6,1.98 C54.32,1.98 56,5.28 56,11.88 C56,26.4 54.32,39.6 50.4,47.52 C44.8,58.08 36.4,64.02 28,66 C19.6,64.02 11.2,58.08 5.6,47.52 C1.68,39.6 0,26.4 0,11.88 C0,5.28 1.68,1.98 8.4,1.98 C14,-1.32 21.28,-1.32 28,1.98 Z");
+    clip-path: path("M28,0 C27.418,0.795 25.856,3.367 24.506,4.768 C23.156,6.169 21.694,7.373 19.9,8.407 C18.106,9.441 16.241,10.336 13.743,10.973 C11.245,11.61 7.177,10.422 4.91,12.23 C2.642,14.037 0.643,17.72 0.141,21.818 C-0.361,25.916 0.523,32.24 1.896,36.816 C3.269,41.393 5.669,45.471 8.38,49.279 C11.09,53.087 14.888,56.877 18.158,59.664 C21.428,62.451 26.36,64.944 28,66 C29.64,64.944 34.572,62.451 37.842,59.664 C41.112,56.877 44.91,53.087 47.62,49.279 C50.331,45.471 52.731,41.393 54.104,36.816 C55.477,32.24 56.361,25.916 55.859,21.818 C55.357,17.72 53.358,14.037 51.09,12.23 C48.823,10.422 44.755,11.61 42.257,10.973 C39.759,10.336 37.894,9.441 36.1,8.407 C34.306,7.373 32.844,6.169 31.494,4.768 C30.144,3.367 28.582,0.795 28,0 Z");
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -1621,30 +1628,39 @@
     return grad;
   }
 
-  // Shield outline — same heraldic shape (fractional control points, 0-1
-  // relative to w/h) as the CSS clip-path: path() on .pcard-photo-zone
+  // Shield outline — same shape (fractional control points, 0-1 relative
+  // to w/h, traced from reference-rankings/shield crest.avif via OpenCV
+  // contour extraction) as the CSS clip-path: path() on .pcard-photo-zone
   // .tier-pill, just drawn as bezier curves instead of an SVG path string,
   // so the "by tier" graphic's shields visually match the cards at any size.
   function drawShield(ctx, x, y, w, h, tier) {
     const P = (fx, fy) => [x + fx * w, y + fy * h];
-    const top = P(0.5, 0.03);
-    const c1 = P(0.62, -0.02), c2 = P(0.75, -0.02), shoulder = P(0.85, 0.03);
-    const c3 = P(0.97, 0.03), c4 = P(1, 0.08), widest = P(1, 0.18);
-    const c5 = P(1, 0.4), c6 = P(0.97, 0.6), mid = P(0.9, 0.72);
-    const c7 = P(0.8, 0.88), c8 = P(0.65, 0.97), bottom = P(0.5, 1);
+    const top = P(0.5, 0);
+    const segs = [
+      [P(0.4896, 0.012), P(0.4617, 0.051), P(0.4376, 0.0722)],
+      [P(0.4135, 0.0935), P(0.3874, 0.1117), P(0.3554, 0.1274)],
+      [P(0.3233, 0.143), P(0.29, 0.1566), P(0.2454, 0.1663)],
+      [P(0.2008, 0.1759), P(0.1282, 0.1579), P(0.0877, 0.1853)],
+      [P(0.0472, 0.2127), P(0.0115, 0.2685), P(0.0025, 0.3306)],
+      [P(-0.0065, 0.3927), P(0.0093, 0.4885), P(0.0339, 0.5578)],
+      [P(0.0584, 0.6272), P(0.1012, 0.689), P(0.1496, 0.7467)],
+      [P(0.198, 0.8043), P(0.2659, 0.8618), P(0.3242, 0.904)],
+      [P(0.3826, 0.9462), P(0.4707, 0.984), P(0.5, 1)],
+    ];
     const mirrorX = ([px, py]) => [x + (w - (px - x)), py];
+    // Point each segment starts FROM, in forward (top-to-bottom) order —
+    // needed to walk the mirrored right side back the other way (bottom-
+    // to-top), where each curve's start/end roles swap.
+    const startPts = [top, ...segs.slice(0, -1).map((s) => s[2])];
 
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(...top);
-    ctx.bezierCurveTo(...c1, ...c2, ...shoulder);
-    ctx.bezierCurveTo(...c3, ...c4, ...widest);
-    ctx.bezierCurveTo(...c5, ...c6, ...mid);
-    ctx.bezierCurveTo(...c7, ...c8, ...bottom);
-    ctx.bezierCurveTo(...mirrorX(c8), ...mirrorX(c7), ...mirrorX(mid));
-    ctx.bezierCurveTo(...mirrorX(c6), ...mirrorX(c5), ...mirrorX(widest));
-    ctx.bezierCurveTo(...mirrorX(c4), ...mirrorX(c3), ...mirrorX(shoulder));
-    ctx.bezierCurveTo(...mirrorX(c2), ...mirrorX(c1), ...top);
+    for (const [c1, c2, p1] of segs) ctx.bezierCurveTo(...c1, ...c2, ...p1);
+    for (let i = segs.length - 1; i >= 0; i--) {
+      const [c1, c2] = segs[i];
+      ctx.bezierCurveTo(...mirrorX(c2), ...mirrorX(c1), ...mirrorX(startPts[i]));
+    }
     ctx.closePath();
     ctx.fillStyle = tierGradient(ctx, x, y, w, h, tier);
     ctx.fill();
@@ -2161,15 +2177,57 @@
     window.removeEventListener("pointermove", onMyQbDragPointerMove);
     window.removeEventListener("pointerup", onMyQbDragPointerUp);
   }
-  myQbList.addEventListener("pointerdown", (e) => {
-    const row = e.target.closest(".myqb-row");
-    if (!row) return;
-    e.preventDefault();
+  function startMyQbDrag(row) {
     myQbDragRow = row;
     myQbDragRow.classList.add("is-dragging");
     window.addEventListener("pointermove", onMyQbDragPointerMove);
     window.addEventListener("pointerup", onMyQbDragPointerUp);
+  }
+
+  // Only the grip handle and the QB name start a drag on first touch —
+  // grabbing the whole row (the old behavior) meant a normal vertical
+  // swipe to scroll the page past this card got hijacked into reordering
+  // QBs instead. Touching anywhere ELSE in the row starts a long-press
+  // timer instead: if the finger stays roughly still until it fires,
+  // that's a deliberate "pick this up" gesture and a drag starts; if it
+  // moves first, that's a scroll and the timer is cancelled without ever
+  // having blocked it. Only touch/pen get the long-press fallback — mouse
+  // users don't have a scroll-vs-drag ambiguity to begin with (wheel
+  // scrolls, not click-drag). Same pattern as teams-power-ranking-card-
+  // prototype.html's own myrank-row fix.
+  const MYQB_LONG_PRESS_MS = 450;
+  const MYQB_LONG_PRESS_CANCEL_PX = 10;
+  let myQbPressRow = null, myQbPressTimer = null, myQbPressX = 0, myQbPressY = 0;
+
+  function cancelMyQbLongPress() {
+    if (myQbPressTimer) { clearTimeout(myQbPressTimer); myQbPressTimer = null; }
+    myQbPressRow = null;
+  }
+
+  myQbList.addEventListener("pointerdown", (e) => {
+    const row = e.target.closest(".myqb-row");
+    if (!row) return;
+    if (e.target.closest(".myqb-handle, .myqb-name")) {
+      e.preventDefault();
+      startMyQbDrag(row);
+      return;
+    }
+    if (e.pointerType !== "mouse") {
+      myQbPressRow = row;
+      myQbPressX = e.clientX;
+      myQbPressY = e.clientY;
+      myQbPressTimer = setTimeout(() => {
+        if (myQbPressRow) startMyQbDrag(myQbPressRow);
+        myQbPressRow = null;
+      }, MYQB_LONG_PRESS_MS);
+    }
   });
+  myQbList.addEventListener("pointermove", (e) => {
+    if (!myQbPressRow) return;
+    if (Math.hypot(e.clientX - myQbPressX, e.clientY - myQbPressY) > MYQB_LONG_PRESS_CANCEL_PX) cancelMyQbLongPress();
+  });
+  myQbList.addEventListener("pointerup", cancelMyQbLongPress);
+  myQbList.addEventListener("pointercancel", cancelMyQbLongPress);
 
   // Reset: back to the stock report's own order. Visual only until the user
   // drags something again — it doesn't persist by itself.
